@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Gelişmiş Servis Yönetim Paneli V3 (Çevrimiçi)</title>
+    <title>Ekzen Teknik - Gelişmiş Servis Yönetim Paneli V3</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -19,7 +19,7 @@
         body { background-color: var(--bg-gray); color: var(--text-color); display: flex; height: 100vh; overflow: hidden; }
 
         /* Sol Menü - Sidebar */
-        .sidebar { width: 70px; background-color: #ffffff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 20px; flex-shrink: 0; }
+        .sidebar { width: 70px; background-color: #ffffff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 20px; }
         .sidebar-brand { width: 40px; height: 40px; background: var(--main-blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; margin-bottom: 20px; }
         .nav-item { width: 45px; height: 45px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #555; font-size: 20px; transition: all 0.2s; border: 1px solid transparent; }
         .nav-item:hover, .nav-item.active { background-color: #e3f2fd; color: var(--main-blue); border-color: #bbdefb; }
@@ -28,7 +28,7 @@
         .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         
         /* Üst Bar - Navbar */
-        .navbar { height: 60px; background-color: var(--main-blue); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-shrink: 0; }
+        .navbar { height: 60px; background-color: var(--main-blue); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .navbar-brand { font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
         .user-profile { display: flex; align-items: center; gap: 10px; font-size: 14px; }
 
@@ -38,7 +38,7 @@
 
         /* Mavi Dashboard Paneli */
         .dashboard-banner { background-color: var(--main-blue); color: white; padding: 20px; border-radius: 6px; margin-bottom: 20px; display: flex; gap: 40px; align-items: center; }
-        .logo-box { width: 100px; height: 100px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #333; font-weight: bold; font-size: 24px; flex-shrink: 0; }
+        .logo-box { width: 100px; height: 100px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #333; font-weight: bold; font-size: 24px; }
         .stats-summary { font-size: 14px; line-height: 1.8; }
 
         /* İstatistik Kutuları */
@@ -52,28 +52,28 @@
         .filter-section input, .filter-section select { padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; min-width: 150px; }
         
         /* Butonlar */
-        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
         .btn-blue { background-color: var(--main-blue); color: white; }
         .btn-green { background-color: var(--success-green); color: white; }
         .btn-danger { background-color: var(--danger-red); color: white; }
         .btn-small { padding: 4px 8px; font-size: 11px; }
 
         /* Standart Tablo Yapısı */
-        .table-container { background: white; border: 1px solid var(--border-color); border-radius: 6px; overflow-x: auto; width: 100%; }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; min-width: 600px; }
+        .table-container { background: white; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
         th { background-color: #f8f9fa; padding: 12px; border-bottom: 2px solid var(--border-color); font-weight: 600; color: #555; }
         td { padding: 12px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
         tr:hover { background-color: #f1f5f9; }
         
         /* Durum Rozeti */
-        .status-badge { padding: 4px 8px; background: #0066b2; color: white; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; }
+        .status-badge { padding: 4px 8px; background: #000; color: white; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; }
 
         /* Listeler ve Yönetim Grupları */
         .setting-group { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 20px; }
         .setting-group h3 { font-size: 15px; margin-bottom: 15px; color: var(--main-blue); border-bottom: 1px solid #eee; padding-bottom: 8px; }
         .custom-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 8px; font-size: 13px; }
 
-        /* MODAL */
+        /* MODAL - Gelişmiş Servis Detay Penceresi */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 999; }
         .modal-box { width: 90%; max-width: 950px; background: white; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
         .modal-header { background-color: var(--main-blue); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: bold; }
@@ -84,7 +84,7 @@
         .info-card { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 15px; }
         .info-card h4 { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; color: var(--main-blue); font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
         .info-row { display: flex; margin-bottom: 6px; font-size: 13px; }
-        .info-label { width: 140px; font-weight: 600; color: #666; flex-shrink: 0; }
+        .info-label { width: 140px; font-weight: 600; color: #666; }
         
         .section-box { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 15px; }
         .section-title { background: #e9ecef; padding: 8px 12px; font-weight: bold; font-size: 13px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; }
@@ -93,38 +93,21 @@
         .text-green { color: var(--success-green); font-weight: bold; }
         .text-red { color: var(--danger-red); font-weight: bold; }
 
-        /* MOBİL RESPONSIVE TASARIM KATMANI */
-        @media (max-width: 768px) {
-            body { flex-direction: column; height: auto; overflow: auto; }
-            .sidebar { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; flex-direction: row; justify-content: space-around; padding-top: 0; align-items: center; border-right: none; border-top: 1px solid var(--border-color); gap: 0; z-index: 999; }
-            .sidebar-brand { display: none; }
-            .nav-item { width: 50px; height: 50px; }
-            .navbar { height: auto; flex-direction: column; padding: 10px; gap: 5px; text-align: center; }
-            .navbar-brand { font-size: 15px; }
-            .user-profile { font-size: 12px; border-top: 1px solid rgba(255,255,255,0.2); width: 100%; justify-content: center; padding-top: 5px; margin-top: 2px; }
-            .main-wrapper { width: 100%; height: auto; overflow: visible; margin-bottom: 60px; }
-            .content-area { padding: 12px; overflow: visible; height: auto; }
-            .dashboard-banner { flex-direction: column; gap: 15px; text-align: center; padding: 15px; }
-            .logo-box { width: 80px; height: 80px; font-size: 20px; }
-            .stats-summary h2 { font-size: 18px; }
-            .stats-grid { grid-template-columns: 1fr; gap: 12px; }
-            .stat-card { padding: 15px; }
-            .stat-card .value { font-size: 28px; }
-            .filter-section { flex-direction: column; align-items: stretch; padding: 10px; }
-            .filter-section input, .filter-section select, .filter-section .btn { width: 100%; text-align: center; justify-content: center; }
-            .info-grid { grid-template-columns: 1fr; gap: 12px; }
-            .modal-box { width: 95%; max-height: 85vh; margin: 20px auto; }
-            .modal-body { padding: 12px; gap: 12px; }
-            .info-row { flex-direction: column; margin-bottom: 8px; }
-            .info-label { width: 100%; margin-bottom: 2px; color: #888; }
-            .section-box select { width: 100%; margin-left: 0 !important; margin-top: 8px; display: block; padding: 6px; }
-            .inner-row { flex-direction: column; align-items: flex-start; gap: 5px; }
-            .modal-body div[style*="display:flex; justify-content:space-between;"] { flex-direction: column; gap: 5px; }
+        /* Servis Fişi Dijital Çıktı Tasarımı */
+        .receipt-box {
+            background: #ffffff;
+            border: 1px dashed #333;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            color: #000;
+            margin-top: 10px;
+            max-height: 320px;
+            overflow-y: auto;
         }
     </style>
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
@@ -154,7 +137,7 @@
             
             <div class="stats-grid">
                 <div class="stat-card"><h3>Bugün Alınan Servis</h3><div class="value" id="dashBugun">0</div></div>
-                <div class="stat-card"><h3>Sistem Durumu</h3><div class="value" style="color:var(--success-green); font-size:18px; padding-top:15px;">Çevrimiçi</div></div>
+                <div class="stat-card"><h3>Dün Alınan Servis</h3><div class="value">0</div></div>
                 <div class="stat-card"><h3>Kasa Durumu</h3><div class="value" id="dashKasaBox" style="font-size:24px; padding-top:10px;">0 ₺</div></div>
             </div>
         </div>
@@ -210,9 +193,9 @@
         <div id="ayarlar" class="content-area">
             <div class="setting-group">
                 <h3>Servis Aşamaları / Durum Yönetimi</h3>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <input type="text" id="newStatusInput" placeholder="Yeni aşama adı yazın (Örn: Parça Bekliyor)..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:4px; min-width: 200px;">
-                    <button class="btn btn-green" onclick="addNewStatus()" style="width: 100%; justify-content: center;">Aşama Ekle</button>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="newStatusInput" placeholder="Yeni aşama adı yazın (Örn: Parça Bekliyor)..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:4px;">
+                    <button class="btn btn-green" onclick="addNewStatus()">Aşama Ekle</button>
                 </div>
                 <div id="statusSettingsList"></div>
             </div>
@@ -227,8 +210,9 @@
             </div>
             <div class="modal-body">
                 
-                <div style="display:flex; justify-content:space-between; background:#e3f2fd; padding:10px; border-radius:4px; font-size:12px;">
-                    <div><strong>Tarih:</strong> <span id="mDate"></span> | <strong>Servis Kaynağı:</strong> Saha</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#e3f2fd; padding:10px; border-radius:4px; font-size:12px; flex-wrap:wrap; gap:10px;">
+                    <div><strong>Tarih:</strong> <span id="mDate"></span> | <strong>Servis Kaynağı:</strong> İsa Abi</div>
+                    <button class="btn btn-small" onclick="generateServisFisi()" style="background:#333; color:white; font-weight:bold;">🧾 Servis Fişi Oluştur</button>
                     <div><strong>Operatör:</strong> Doğan Sezai Koçak</div>
                 </div>
 
@@ -271,341 +255,22 @@
                 </div>
 
                 <div style="margin-top:10px; text-align:right;">
-                    <button class="btn btn-danger" onclick="deleteActiveServis()" style="width: 100%; justify-content: center;">⚠️ Bu Servis Kaydını Tamamen Sil</button>
+                    <button class="btn btn-danger" onclick="deleteActiveServis()">⚠️ Bu Servis Kaydını Tamamen Sil</button>
                 </div>
 
             </div>
         </div>
     </div>
 
-<script>
-    // Firebase Yapılandırması
-    const firebaseConfig = {
-        apiKey: "AIzaSyArRO3GilYemYHX8sJdzNqv-uG7V6LsskQ",
-        authDomain: "ekzen-teknik.firebaseapp.com",
-        databaseURL: "https://ekzen-teknik-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "ekzen-teknik",
-        storageBucket: "ekzen-teknik.firebasestorage.app",
-        messagingSenderId: "199852526862",
-        appId: "1:199852526862:web:5b2efb44f0a26ca76f5b5f"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-
-    let db = { servisler: [], kasa: [], durumlar: [] };
-    let activeServisKey = null;
-
-    // Firebase Canlı Veri Dinleme
-    database.ref('ekzen_db').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            db.servisler = data.servisler ? Object.keys(data.servisler).map(key => ({ _key: key, ...data.servisler[key] })) : [];
-            db.kasa = data.kasa ? Object.keys(data.kasa).map(key => ({ _key: key, ...data.kasa[key] })) : [];
-            db.durumlar = data.durumlar || ["Açık Talep", "Teknisyen Yönlendirildi", "Servis Sonlandırıldı"];
-            
-            updateDashboard();
-            updateStatusSelectors();
-            
-            if(document.getElementById('servisler').classList.contains('active')) renderServisler();
-            if(document.getElementById('kasa').classList.contains('active')) renderKasa();
-            if(document.getElementById('ayarlar').classList.contains('active')) renderAyarlar();
-            
-            if (activeServisKey) {
-                const currentServis = db.servisler.find(item => item._key === activeServisKey);
-                if (currentServis) renderModalHistories(currentServis);
-            }
-        }
-    });
-
-    function saveStatusToCloud() {
-        database.ref('ekzen_db/durumlar').set(db.durumlar);
-    }
-
-    function switchTab(tabId, element) {
-        document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        element.classList.add('active');
-        
-        if(tabId === 'servisler') renderServisler();
-        if(tabId === 'kasa') renderKasa();
-        if(tabId === 'ayarlar') renderAyarlar();
-    }
-
-    function updateDashboard() {
-        document.getElementById('dashTotalServis').innerText = db.servisler.length;
-        document.getElementById('dashBugun').innerText = db.servisler.length;
-        
-        let netKasa = db.kasa.reduce((sum, item) => sum + parseInt(item.tutar || 0), 0);
-        let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
-        document.getElementById('dashKasaNet').innerText = formatKasa;
-        document.getElementById('kasaKalanTutar').innerText = formatKasa;
-        document.getElementById('dashKasaBox').innerText = netKasa.toLocaleString('tr-TR') + " ₺";
-    }
-
-    function updateStatusSelectors() {
-        const filterSel = document.getElementById('filterStatus');
-        const modalSel = document.getElementById('actionSelect');
-        const oldFilterVal = filterSel.value;
-        
-        filterSel.innerHTML = '<option value="">Tüm Durumlar</option>';
-        modalSel.innerHTML = '<option value="">Seçiniz</option>';
-        
-        db.durumlar.forEach(d => {
-            filterSel.innerHTML += `<option value="${d}">${d}</option>`;
-            modalSel.innerHTML += `<option value="${d}">${d}</option>`;
-        });
-        
-        filterSel.value = oldFilterVal;
-    }
-
-    function renderServisler() {
-        const tbody = document.getElementById('servisTableBody');
-        tbody.innerHTML = '';
-        db.servisler.forEach((s) => {
-            tbody.innerHTML += `
-                <tr>
-                    <td><strong>#${s.id}</strong><br><span style="color:#666; font-size:11px;">${s.date}</span></td>
-                    <td><strong>${s.name}</strong><br>${s.phone}<br><span style="color:#555;">${s.address}</span></td>
-                    <td><strong>${s.cihaz}</strong><br><em>${s.model}</em><br><span style="color:var(--danger-red);">${s.ariza}</span></td>
-                    <td><span class="status-badge">${s.status}</span></td>
-                    <td>
-                        <button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Görüntüle / Düzenle</button>
-                    </td>
-                </tr>
-            `;
-        });
-    }
-
-    function openDetailModal(key) {
-        activeServisKey = key;
-        const s = db.servisler.find(item => item._key === key);
-        if(!s) return;
-        
-        document.getElementById('modalHeaderTitle').innerText = `Servis Detay (#${s.id})`;
-        document.getElementById('mDate').innerText = s.date;
-        document.getElementById('mName').innerText = s.name;
-        document.getElementById('mPhone').innerText = s.phone;
-        document.getElementById('mAddress').innerText = s.address;
-        document.getElementById('mCihaz').innerText = s.cihaz;
-        document.getElementById('mModel').innerText = s.model;
-        document.getElementById('mAriza').innerText = s.ariza;
-        document.getElementById('mCurrentStatus').innerText = s.status;
-        document.getElementById('actionSelect').value = "";
-
-        renderModalHistories(s);
-        document.getElementById('servisModal').style.display = 'flex';
-    }
-
-    function editMüşteriBilgisi() {
-        const s = db.servisler.find(item => item._key === activeServisKey);
-        if(!s) return;
-        let newName = prompt("Müşteri Adı Soyadı:", s.name);
-        let newPhone = prompt("Telefon Numarası:", s.phone);
-        let newAddress = prompt("Adres Bilgisi:", s.address);
-        
-        let updates = {};
-        if(newName) updates.name = newName;
-        if(newPhone) updates.phone = newPhone;
-        if(newAddress) updates.address = newAddress;
-        
-        database.ref(`ekzen_db/servisler/${activeServisKey}`).update(updates);
-    }
-
-    function editCihazBilgisi() {
-        const s = db.servisler.find(item => item._key === activeServisKey);
-        if(!s) return;
-        let newCihaz = prompt("Cihaz / Marka:", s.cihaz);
-        let newModel = prompt("Model:", s.model);
-        let newAriza = prompt("Arıza Tanımı:", s.ariza);
-        
-        let updates = {};
-        if(newCihaz) updates.cihaz = newCihaz;
-        if(newModel) updates.model = newModel;
-        if(newAriza) updates.ariza = newAriza;
-        
-        database.ref(`ekzen_db/servisler/${activeServisKey}`).update(updates);
-    }
-
-    function deleteActiveServis() {
-        if(confirm("DİKKAT! Bu servis kaydını sistemden tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
-            database.ref(`ekzen_db/servisler/${activeServisKey}`).remove();
-            closeModal();
-        }
-    }
-
-    function renderModalHistories(s) {
-        const islemCont = document.getElementById('islemHistoryContainer');
-        const paraCont = document.getElementById('paraHistoryContainer');
-        const notCont = document.getElementById('notHistoryContainer');
-
-        islemCont.innerHTML = s.islemler ? Object.keys(s.islemler).map(k => `
-            <div class="inner-row">
-                <div>${s.islemler[k].text}</div>
-                <div style="display:flex; align-items:center; gap:10px; color:#888;">
-                    ${s.islemler[k].time} 
-                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('islemler', '${k}')">✕</span>
-                </div>
+    <div class="modal-overlay" id="fisModal" style="z-index: 1000;">
+        <div class="modal-box" style="max-width: 500px;">
+            <div class="modal-header" style="background-color: #333;">
+                <span>🧾 Dijital Servis Fişi Üretildi</span>
+                <span class="modal-close" onclick="closeFisModal()">✕</span>
             </div>
-        `).join('') : '';
-
-        paraCont.innerHTML = s.odemeler ? Object.keys(s.odemeler).map(k => `
-            <div class="inner-row">
-                <div><strong>${s.odemeler[k].text}</strong> (${s.odemeler[k].type || 'Nakit'})</div>
-                <div class="text-green" style="display:flex; align-items:center; gap:10px;">
-                    ${s.odemeler[k].tutar} TL 
-                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('odemeler', '${k}')">✕</span>
-                </div>
-            </div>
-        `).join('') : '';
-
-        notCont.innerHTML = s.notlar ? Object.keys(s.notlar).map(k => `
-            <div class="inner-row">
-                <div>${s.notlar[k].text}</div>
-                <div style="display:flex; align-items:center; gap:10px; color:#888;">
-                    ${s.notlar[k].time} 
-                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('notlar', '${k}')">✕</span>
-                </div>
-            </div>
-        `).join('') : '';
-    }
-
-    function deleteHistoryItem(childNode, itemKey) {
-        if(!confirm("Bu satırı silmek istediğinize emin misiniz?")) return;
-        database.ref(`ekzen_db/servisler/${activeServisKey}/${childNode}/${itemKey}`).remove();
-    }
-
-    function handleAşamaEkle(val) {
-        if(!val || !activeServisKey) return;
-        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
-        
-        database.ref(`ekzen_db/servisler/${activeServisKey}`).update({ status: val });
-        database.ref(`ekzen_db/servisler/${activeServisKey}/islemler`).push({ time: timeStr, text: `Doğan Sezai Koçak : ${val}` });
-        
-        document.getElementById('mCurrentStatus').innerText = val;
-    }
-
-    function promptÖdemeEkle() {
-        let tutar = prompt("Alınan Ödeme Tutarını Girin (TL):");
-        if(!tutar) return;
-        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
-        const s = db.servisler.find(item => item._key === activeServisKey);
-        
-        database.ref(`ekzen_db/servisler/${activeServisKey}/odemeler`).push({ time: timeStr, text: "Doğan Sezai KOÇAK", type: "Nakit", tutar: parseInt(tutar) });
-        database.ref('ekzen_db/kasa').push({ date: timeStr, type: "Nakit", desc: `Servis Ödemesi: No #${s.id} - ${s.name}`, tutar: parseInt(tutar) });
-    }
-
-    function promptNotEkle() {
-        let notText = prompt("Servis Notu Yazın:");
-        if(!notText) return;
-        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
-        
-        database.ref(`ekzen_db/servisler/${activeServisKey}/notlar`).push({ time: timeStr, text: `Doğan Sezai Koçak: ${notText}` });
-    }
-
-    function renderAyarlar() {
-        const listContainer = document.getElementById('statusSettingsList');
-        listContainer.innerHTML = '';
-        db.durumlar.forEach((d, idx) => {
-            listContainer.innerHTML += `
-                <div class="custom-list-item">
-                    <span>📋 <strong>${d}</strong></span>
-                    <button class="btn btn-danger btn-small" onclick="deleteStatus(${idx})">Aşamayı Sistemden Kaldır</button>
-                </div>
-            `;
-        });
-    }
-
-    function addNewStatus() {
-        const input = document.getElementById('newStatusInput');
-        let val = input.value.trim();
-        if(!val) return;
-        if(db.durumlar.includes(val)) { alert("Bu aşama zaten mevcut!"); return; }
-        
-        db.durumlar.push(val);
-        input.value = '';
-        saveStatusToCloud();
-    }
-
-    function deleteStatus(idx) {
-        if(confirm(`"${db.durumlar[idx]}" aşamasını silmek istediğinize emin misiniz?`)) {
-            db.durumlar.splice(idx, 1);
-            saveStatusToCloud();
-        }
-    }
-
-    function renderKasa() {
-        const tbody = document.getElementById('kasaTableBody');
-        tbody.innerHTML = '';
-        db.kasa.forEach((k, idx) => {
-            let tClass = k.tutar < 0 ? 'text-red' : 'text-green';
-            let tSign = k.tutar > 0 ? '+' : '';
-            tbody.innerHTML += `
-                <tr>
-                    <td>${k.date}</td>
-                    <td>${k.type}</td>
-                    <td>${k.desc}</td>
-                    <td class="${tClass}">${tSign}${parseInt(k.tutar).toLocaleString('tr-TR')} ₺</td>
-                    <td><button class="btn btn-danger btn-small" onclick="deleteKasaHareketi('${k._key}')">Sil</button></td>
-                </tr>
-            `;
-        });
-    }
-
-    function addKasaHareketiPrompt() {
-        let desc = prompt("Harcama/Gelir Açıklaması:");
-        if(!desc) return;
-        let tutar = prompt("Tutar girin (Gider için eksi (-) koyun):");
-        if(!tutar) return;
-
-        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
-        database.ref('ekzen_db/kasa').push({ date: timeStr, type: "Nakit", desc: desc, tutar: parseInt(tutar) });
-    }
-
-    function deleteKasaHareketi(key) {
-        if(confirm("Bu kasa hareketini tamamen silmek istediğinize emin misiniz?")) {
-            database.ref(`ekzen_db/kasa/${key}`).remove();
-        }
-    }
-
-    function openNewServisModal() {
-        let name = prompt("Müşteri Adı Soyadı:"); if(!name) return;
-        let phone = prompt("Telefon Numarası:");
-        let address = prompt("Açık Adres:");
-        let cihaz = prompt("Cihaz / Marka:");
-        let ariza = prompt("Arıza Detayı:");
-
-        let idGen = Math.floor(100000 + Math.random() * 900000);
-        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
-
-        let newServis = {
-            id: idGen, date: timeStr, name: name, phone: phone || "Bilinmiyor", address: address || "Girilmedi",
-            cihaz: cihaz || "Bilinmedi", model: "Standart", ariza: ariza || "Belirtilmedi",
-            status: db.durumlar[0] || "Açık Talep"
-        };
-
-        const newRef = database.ref('ekzen_db/servisler').push(newServis);
-        database.ref(`ekzen_db/servisler/${newRef.key}/islemler`).push({ time: timeStr, text: "Sistem: Yeni Servis Kaydı Açıldı" });
-    }
-
-    function filterServisler() {
-        let query = document.getElementById('searchKeyword').value.toUpperCase();
-        let statusFilter = document.getElementById('filterStatus').value.toUpperCase();
-        const trs = document.getElementById('servisTableBody').getElementsByTagName('tr');
-        
-        for (let i = 0; i < trs.length; i++) {
-            let text = trs[i].innerText.toUpperCase();
-            let match = text.indexOf(query) > -1;
-            if(statusFilter) match = match && (text.indexOf(statusFilter) > -1);
-            trs[i].style.display = match ? "" : "none";
-        }
-    }
-
-    function closeModal() { 
-        document.getElementById('servisModal').style.display = 'none'; 
-        activeServisKey = null;
-    }
-</script>
-</body>
-</html>
+            <div class="modal-body" style="background-color: #fff;">
+                <p style="font-size: 12px; color: #666; font-weight: bold;">Müşteriye göndermek için aşağıdaki metni kopyalayabilirsiniz:</p>
+                <div id="fisMetinAlani" class="receipt-box"></div>
+                <div id="kopyalaMesaj" style="display:none; color:var(--success-green); font-size:12px; font-weight:bold; text-align:center; margin-top:5px;">✓ Metin başarıyla kopyalandı! WhatsApp sohbetine yapıştırabilirsiniz.</div>
+                <div style="margin-top:15px; display: flex; gap: 10px;">
+                    <button class="btn btn-blue" onclick="kopyalaFisMetni()" style
