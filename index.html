@@ -211,7 +211,7 @@
             <div class="modal-body">
                 
                 <div style="display:flex; justify-content:space-between; align-items:center; background:#e3f2fd; padding:10px; border-radius:4px; font-size:12px; flex-wrap:wrap; gap:10px;">
-                    <div><strong>Tarih:</strong> <span id="mDate"></span> | <strong>Servis Kaynağı:</strong> İsa Abi</div>
+                    <div><strong>Tarih:</strong> <span id="mDate"></span> | <strong>Servis Kaynağı:</strong> Saha</div>
                     <button class="btn btn-small" onclick="generateServisFisi()" style="background:#333; color:white; font-weight:bold;">🧾 Servis Fişi Oluştur</button>
                     <div><strong>Operatör:</strong> Doğan Sezai Koçak</div>
                 </div>
@@ -273,4 +273,446 @@
                 <div id="fisMetinAlani" class="receipt-box"></div>
                 <div id="kopyalaMesaj" style="display:none; color:var(--success-green); font-size:12px; font-weight:bold; text-align:center; margin-top:5px;">✓ Metin başarıyla kopyalandı! WhatsApp sohbetine yapıştırabilirsiniz.</div>
                 <div style="margin-top:15px; display: flex; gap: 10px;">
-                    <button class="btn btn-blue" onclick="kopyalaFisMetni()" style
+                    <button class="btn btn-blue" onclick="kopyalaFisMetni()" style="flex:1; justify-content: center;">📋 Metni Kopyala</button>
+                    <button class="btn btn-danger" onclick="closeFisModal()" style="background:#555;">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('ekzen_advanced_v3_db')) || {
+        servisler: [
+            {
+                id: 664983,
+                date: "19.06.2026 20:44",
+                name: "Sümeyye Ulu",
+                phone: "0534 416 9417",
+                address: "Kurucu Sokak 22/13 Mamak / Ankara",
+                cihaz: "Demirdöküm / Kombi",
+                model: "Nitron",
+                ariza: "F *05 Veriyor",
+                status: "Servis Sonlandırıldı",
+                islemler: [
+                    { time: "19.06.2026 20:52", text: "Doğan Sezai Koçak : Servis Sonlandırıldı" },
+                    { time: "19.06.2026 20:51", text: "Doğan Sezai Koçak : Teknisyen Yönlendirildi" }
+                ],
+                odemeler: [{ time: "19.06.2026", text: "Saha Servis İşlemi", type: "Nakit", tutar: 4000 }],
+                notlar: [{ time: "19.06.2026", text: "Doğan Sezai Koçak: Kart arızalı revizyon yapıldı" }]
+            },
+            {
+                id: 664982,
+                date: "19.06.2026 20:41",
+                name: "638 Sokak",
+                phone: "0500 000 0000",
+                address: "Şahintepe Mah 638 Sokak 7/16 / Ankara",
+                cihaz: "Arçelik - Çamaşır Makinası",
+                model: "Standart",
+                ariza: "Sigorta Attırıyor",
+                status: "Servis Sonlandırıldı",
+                islemler: [{ time: "19.06.2026 20:41", text: "Sistem: Kayıt Açıldı" }],
+                odemeler: [{ time: "19.06.2026", text: "Servis İşlemleri", type: "Nakit", tutar: 2500 }],
+                notlar: []
+            }
+        ],
+        kasa: [
+            { id: 1, date: "19.06.2026 21:49", type: "Nakit", desc: "Hakediş Dağıtımı", tutar: -4000 },
+            { id: 2, date: "19.06.2026 21:49", type: "Nakit", desc: "Hakediş", tutar: 4000 },
+            { id: 3, date: "19.06.2026 21:44", type: "Nakit", desc: "Servis No: 664982", tutar: 2500 },
+            { id: 4, date: "19.06.2026 20:52", type: "Nakit", desc: "Servis No: 664983", tutar: 4000 }
+        ],
+        durumlar: ["Açık Talep", "Teknisyen Yönlendirildi", "Atölyeye Alındı", "Yerinde Bakım Yapıldı", "Fiyatta Anlaşılamadı", "Parçası Atölyeye Alındı", "Servis Sonlandırıldı"]
+    };
+
+    let activeServisIndex = -1;
+
+    function saveToStorage() {
+        localStorage.setItem('ekzen_advanced_v3_db', JSON.stringify(db));
+        updateDashboard();
+        updateStatusSelectors();
+    }
+
+    function switchTab(tabId, element) {
+        document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        element.classList.add('active');
+        
+        if(tabId === 'servisler') renderServisler();
+        if(tabId === 'kasa') renderKasa();
+        if(tabId === 'ayarlar') renderAyarlar();
+    }
+
+    function updateDashboard() {
+        document.getElementById('dashTotalServis').innerText = db.servisler.length;
+        document.getElementById('dashBugun').innerText = db.servisler.length;
+        
+        let netKasa = db.kasa.reduce((sum, item) => sum + item.tutar, 0);
+        let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
+        document.getElementById('dashKasaNet').innerText = formatKasa;
+        
+        const kasaKalan = document.getElementById('kasaKalanTutar');
+        if (kasaKalan) kasaKalan.innerText = formatKasa;
+        
+        document.getElementById('dashKasaBox').innerText = netKasa.toLocaleString('tr-TR') + " ₺";
+    }
+
+    function updateStatusSelectors() {
+        const filterSel = document.getElementById('filterStatus');
+        const modalSel = document.getElementById('actionSelect');
+        
+        if (filterSel) {
+            const oldFilterVal = filterSel.value;
+            filterSel.innerHTML = '<option value="">Tüm Durumlar</option>';
+            db.durumlar.forEach(d => {
+                filterSel.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+            filterSel.value = oldFilterVal;
+        }
+        
+        if (modalSel) {
+            modalSel.innerHTML = '<option value="">Seçiniz</option>';
+            db.durumlar.forEach(d => {
+                modalSel.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+        }
+    }
+
+    function renderServisler() {
+        const tbody = document.getElementById('servisTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        db.servisler.forEach((s, idx) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>#${s.id}</strong><br><span style="color:#666; font-size:11px;">${s.date}</span></td>
+                    <td><strong>${s.name}</strong><br>${s.phone}<br><span style="color:#555;">${s.address}</span></td>
+                    <td><strong>${s.cihaz}</strong><br><em>${s.model}</em><br><span style="color:var(--danger-red);">${s.ariza}</span></td>
+                    <td><span class="status-badge" style="background-color:#0066b2">${s.status}</span></td>
+                    <td>
+                        <button class="btn btn-blue btn-small" onclick="openDetailModal(${idx})">Görüntüle / Düzenle</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function openDetailModal(idx) {
+        activeServisIndex = idx;
+        const s = db.servisler[idx];
+        
+        document.getElementById('modalHeaderTitle').innerText = `Servis Detay (#${s.id})`;
+        document.getElementById('mDate').innerText = s.date;
+        document.getElementById('mName').innerText = s.name;
+        document.getElementById('mPhone').innerText = s.phone;
+        document.getElementById('mAddress').innerText = s.address;
+        document.getElementById('mCihaz').innerText = s.cihaz;
+        document.getElementById('mModel').innerText = s.model;
+        document.getElementById('mAriza').innerText = s.ariza;
+        document.getElementById('mCurrentStatus').innerText = s.status;
+        document.getElementById('actionSelect').value = "";
+
+        renderModalHistories(s);
+        document.getElementById('servisModal').style.display = 'flex';
+    }
+
+    function editMüşteriBilgisi() {
+        let s = db.servisler[activeServisIndex];
+        let newName = prompt("Müşteri Adı Soyadı:", s.name);
+        let newPhone = prompt("Telefon Numarası:", s.phone);
+        let newAddress = prompt("Adres Bilgisi:", s.address);
+        
+        if(newName) s.name = newName;
+        if(newPhone) s.phone = newPhone;
+        if(newAddress) s.address = newAddress;
+        
+        saveToStorage();
+        openDetailModal(activeServisIndex);
+        renderServisler();
+    }
+
+    function editCihazBilgisi() {
+        let s = db.servisler[activeServisIndex];
+        let newCihaz = prompt("Cihaz / Marka:", s.cihaz);
+        let newModel = prompt("Model:", s.model);
+        let newAriza = prompt("Arıza Tanımı:", s.ariza);
+        
+        if(newCihaz) s.cihaz = newCihaz;
+        if(newModel) s.model = newModel;
+        if(newAriza) s.ariza = newAriza;
+        
+        saveToStorage();
+        openDetailModal(activeServisIndex);
+        renderServisler();
+    }
+
+    function deleteActiveServis() {
+        if(confirm("DİKKAT! Bu servis kaydını sistemden tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
+            db.servisler.splice(activeServisIndex, 1);
+            saveToStorage();
+            closeModal();
+            renderServisler();
+        }
+    }
+
+    function renderModalHistories(s) {
+        document.getElementById('islemHistoryContainer').innerHTML = s.islemler.map((i, idx) => `
+            <div class="inner-row">
+                <div>${i.text}</div>
+                <div style="display:flex; align-items:center; gap:10px; color:#888;">
+                    ${i.time} 
+                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('islem', ${idx})">✕</span>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('paraHistoryContainer').innerHTML = s.odemeler.map((p, idx) => `
+            <div class="inner-row">
+                <div><strong>${p.text}</strong> (${p.type})</div>
+                <div class="text-green" style="display:flex; align-items:center; gap:10px;">
+                    ${p.tutar} TL 
+                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('para', ${idx})">✕</span>
+                </div>
+            </div>
+        `).join('');
+
+        document.getElementById('notHistoryContainer').innerHTML = s.notlar.map((n, idx) => `
+            <div class="inner-row">
+                <div>${n.text}</div>
+                <div style="display:flex; align-items:center; gap:10px; color:#888;">
+                    ${n.time} 
+                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('not', ${idx})">✕</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function deleteHistoryItem(type, idx) {
+        if(!confirm("Bu satırı silmek istediğinize emin misiniz?")) return;
+        let s = db.servisler[activeServisIndex];
+        if(type === 'islem') s.islemler.splice(idx, 1);
+        if(type === 'para') s.odemeler.splice(idx, 1);
+        if(type === 'not') s.notlar.splice(idx, 1);
+        
+        saveToStorage();
+        renderModalHistories(s);
+    }
+
+    function handleAşamaEkle(val) {
+        if(!val) return;
+        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
+        let s = db.servisler[activeServisIndex];
+        s.status = val;
+        s.islemler.unshift({ time: timeStr, text: `Doğan Sezai Koçak : ${val}` });
+        
+        document.getElementById('mCurrentStatus').innerText = val;
+        renderModalHistories(s);
+        saveToStorage();
+        renderServisler();
+    }
+
+    function promptÖdemeEkle() {
+        let tutar = prompt("Alınan Ödeme Tutarını Girin (TL):");
+        if(!tutar) return;
+        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
+        let s = db.servisler[activeServisIndex];
+        
+        s.odemeler.unshift({ time: timeStr, text: "Saha Teknik Servis Ödemesi", type: "Nakit", tutar: parseInt(tutar) });
+        db.kasa.unshift({ id: Date.now(), date: timeStr, type: "Nakit", desc: `Servis Ödemesi: No #${s.id} - ${s.name}`, tutar: parseInt(tutar) });
+        
+        renderModalHistories(s);
+        saveToStorage();
+    }
+
+    function promptNotEkle() {
+        let notText = prompt("Servis Notu Yazın:");
+        if(!notText) return;
+        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
+        let s = db.servisler[activeServisIndex];
+        
+        s.notlar.unshift({ time: timeStr, text: `Doğan Sezai Koçak: ${notText}` });
+        renderModalHistories(s);
+        saveToStorage();
+    }
+
+    function renderAyarlar() {
+        const listContainer = document.getElementById('statusSettingsList');
+        if (!listContainer) return;
+        listContainer.innerHTML = '';
+        db.durumlar.forEach((d, idx) => {
+            listContainer.innerHTML += `
+                <div class="custom-list-item">
+                    <span>📋 <strong>${d}</strong></span>
+                    <button class="btn btn-danger btn-small" onclick="deleteStatus(${idx})">Aşamayı Sistemden Kaldır</button>
+                </div>
+            `;
+        });
+    }
+
+    function addNewStatus() {
+        const input = document.getElementById('newStatusInput');
+        let val = input.value.trim();
+        if(!val) return;
+        if(db.durumlar.includes(val)) { alert("Bu aşama zaten mevcut!"); return; }
+        
+        db.durumlar.push(val);
+        input.value = '';
+        saveToStorage();
+        renderAyarlar();
+    }
+
+    function deleteStatus(idx) {
+        if(confirm(`"${db.durumlar[idx]}" aşamasını silmek istediğinize emin misiniz?`)) {
+            db.durumlar.splice(idx, 1);
+            saveToStorage();
+            renderAyarlar();
+        }
+    }
+
+    function renderKasa() {
+        const tbody = document.getElementById('kasaTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        db.kasa.forEach((k, idx) => {
+            let tClass = k.tutar < 0 ? 'text-red' : 'text-green';
+            let tSign = k.tutar > 0 ? '+' : '';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${k.date}</td>
+                    <td>${k.type}</td>
+                    <td>${k.desc}</td>
+                    <td class="${tClass}">${tSign}${k.tutar.toLocaleString('tr-TR')} ₺</td>
+                    <td><button class="btn btn-danger btn-small" onclick="deleteKasaHareketi(${idx})">Sil</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function addKasaHareketiPrompt() {
+        let desc = prompt("Harcama/Gelir Açıklaması:");
+        if(!desc) return;
+        let tutar = prompt("Tutar girin (Gider için eksi (-) koyun):");
+        if(!tutar) return;
+
+        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
+        db.kasa.unshift({ id: Date.now(), date: timeStr, type: "Nakit", desc: desc, tutar: parseInt(tutar) });
+        saveToStorage();
+        renderKasa();
+    }
+
+    function deleteKasaHareketi(idx) {
+        if(confirm("Bu kasa hareketini tamamen silmek istediğinize emin misiniz?")) {
+            db.kasa.splice(idx, 1);
+            saveToStorage();
+            renderKasa();
+        }
+    }
+
+    function openNewServisModal() {
+        let name = prompt("Müşteri Adı Soyadı:"); if(!name) return;
+        let phone = prompt("Telefon Numarası:");
+        let address = prompt("Açık Adres:");
+        let cihaz = prompt("Cihaz / Marka:");
+        let ariza = prompt("Arıza Detayı:");
+
+        let idGen = Math.floor(100000 + Math.random() * 900000);
+        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
+
+        db.servisler.unshift({
+            id: idGen, date: timeStr, name: name, phone: phone || "Bilinmiyor", address: address || "Girilmedi",
+            cihaz: cihaz || "Bilinmedi", model: "Standart", ariza: ariza || "Belirtilmedi",
+            status: db.durumlar[0] || "Açık Talep",
+            islemler: [{ time: timeStr, text: "Sistem: Yeni Servis Kaydı Açıldı" }], odemeler: [], notlar: []
+        });
+
+        saveToStorage();
+        renderServisler();
+    }
+
+    function filterServisler() {
+        let query = document.getElementById('searchKeyword').value.toUpperCase();
+        let statusFilter = document.getElementById('filterStatus').value;
+        const trs = document.getElementById('servisTableBody').getElementsByTagName('tr');
+        for (let i = 0; i < trs.length; i++) {
+            let text = trs[i].innerText.toUpperCase();
+            let match = text.indexOf(query) > -1;
+            if(statusFilter) match = match && (text.indexOf(statusFilter.toUpperCase()) > -1);
+            trs[i].style.display = match ? "" : "none";
+        }
+    }
+
+    function closeModal() { document.getElementById('servisModal').style.display = 'none'; }
+
+    function generateServisFisi() {
+        if(activeServisIndex === -1) return;
+        const s = db.servisler[activeServisIndex];
+        if(!s) return;
+
+        let toplamUcret = 0;
+        if(s.odemeler && s.odemeler.length > 0) {
+            toplamUcret = s.odemeler.reduce((sum, item) => sum + parseInt(item.tutar || 0), 0);
+        }
+
+        let notlarMetni = "";
+        if(s.notlar && s.notlar.length > 0) {
+            notlarMetni = s.notlar.map(n => `- ${n.text.replace('Doğan Sezai Koçak:', '').trim()}`).join('\n');
+        } else {
+            notlarMetni = "- Teşhis ve teknik müdahale gerçekleştirildi.";
+        }
+
+        let fisSablonu = `======================================
+         EKZEN TEKNİK
+   BEYAZ EŞYA SERVİS HİZMETLERİ
+======================================
+Kayıt / Fiş No : #${s.id}
+Tarih          : ${s.date}
+Uzman Teknisyen: Doğan Sezai Koçak
+--------------------------------------
+MÜŞTERİ BİLGİLERİ:
+Adı Soyadı : ${s.name}
+Telefon    : ${s.phone}
+Adres      : ${s.address}
+--------------------------------------
+CİHAZ & ARIZA BİLGİLERİ:
+Cihaz/Marka: ${s.cihaz}
+Model      : ${s.model || 'Standart'}
+Şikayet    : ${s.ariza}
+--------------------------------------
+YAPILAN İŞLEMLER / NOTLAR:
+${notlarMetni}
+--------------------------------------
+MALİ DURUM:
+Toplam Tutar : ${toplamUcret.toLocaleString('tr-TR')},00 TL
+Ödeme Türü   : Nakit / Havale
+Mevcut Durum : ${s.status}
+--------------------------------------
+Cihazınız başarıyla kontrol edilmiş ve
+gerekli müdahaleler yapılmıştır.
+Bizleri tercih ettiğiniz için teşekkür ederiz.
+Ekzen Teknik Ankara
+======================================`;
+
+        document.getElementById('kopyalaMesaj').style.display = 'none';
+        document.getElementById('fisMetinAlani').innerText = fisSablonu;
+        document.getElementById('fisModal').style.display = 'flex';
+    }
+
+    function closeFisModal() {
+        document.getElementById('fisModal').style.display = 'none';
+    }
+
+    function kopyalaFisMetni() {
+        const metin = document.getElementById('fisMetinAlani').innerText;
+        navigator.clipboard.writeText(metin).then(() => {
+            document.getElementById('kopyalaMesaj').style.display = 'block';
+        }).catch(err => {
+            alert("Metin kopyalanamadı, lütfen alanı elle seçip kopyalayın.");
+        });
+    }
+
+    // İlk yüklemede DOM elemanlarının varlığını kontrol eden başlangıç fonksiyonları
+    updateDashboard();
+    updateStatusSelectors();
+</script>
+</body>
+</html>
