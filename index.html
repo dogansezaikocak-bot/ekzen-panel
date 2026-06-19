@@ -19,7 +19,7 @@
         body { background-color: var(--bg-gray); color: var(--text-color); display: flex; height: 100vh; overflow: hidden; }
 
         /* Sol Menü - Sidebar */
-        .sidebar { width: 70px; background-color: #ffffff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 20px; }
+        .sidebar { width: 70px; background-color: #ffffff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 20px; flex-shrink: 0; }
         .sidebar-brand { width: 40px; height: 40px; background: var(--main-blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; margin-bottom: 20px; }
         .nav-item { width: 45px; height: 45px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #555; font-size: 20px; transition: all 0.2s; border: 1px solid transparent; }
         .nav-item:hover, .nav-item.active { background-color: #e3f2fd; color: var(--main-blue); border-color: #bbdefb; }
@@ -28,7 +28,7 @@
         .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         
         /* Üst Bar - Navbar */
-        .navbar { height: 60px; background-color: var(--main-blue); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .navbar { height: 60px; background-color: var(--main-blue); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-shrink: 0; }
         .navbar-brand { font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
         .user-profile { display: flex; align-items: center; gap: 10px; font-size: 14px; }
 
@@ -38,7 +38,7 @@
 
         /* Mavi Dashboard Paneli */
         .dashboard-banner { background-color: var(--main-blue); color: white; padding: 20px; border-radius: 6px; margin-bottom: 20px; display: flex; gap: 40px; align-items: center; }
-        .logo-box { width: 100px; height: 100px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #333; font-weight: bold; font-size: 24px; }
+        .logo-box { width: 100px; height: 100px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #333; font-weight: bold; font-size: 24px; flex-shrink: 0; }
         .stats-summary { font-size: 14px; line-height: 1.8; }
 
         /* İstatistik Kutuları */
@@ -52,15 +52,15 @@
         .filter-section input, .filter-section select { padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; min-width: 150px; }
         
         /* Butonlar */
-        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
         .btn-blue { background-color: var(--main-blue); color: white; }
         .btn-green { background-color: var(--success-green); color: white; }
         .btn-danger { background-color: var(--danger-red); color: white; }
         .btn-small { padding: 4px 8px; font-size: 11px; }
 
         /* Standart Tablo Yapısı */
-        .table-container { background: white; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        .table-container { background: white; border: 1px solid var(--border-color); border-radius: 6px; overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; min-width: 600px; }
         th { background-color: #f8f9fa; padding: 12px; border-bottom: 2px solid var(--border-color); font-weight: 600; color: #555; }
         td { padding: 12px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
         tr:hover { background-color: #f1f5f9; }
@@ -73,7 +73,7 @@
         .setting-group h3 { font-size: 15px; margin-bottom: 15px; color: var(--main-blue); border-bottom: 1px solid #eee; padding-bottom: 8px; }
         .custom-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 8px; font-size: 13px; }
 
-        /* MODAL - Gelişmiş Servis Detay Penceresi */
+        /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 999; }
         .modal-box { width: 90%; max-width: 950px; background: white; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
         .modal-header { background-color: var(--main-blue); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: bold; }
@@ -84,7 +84,7 @@
         .info-card { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 15px; }
         .info-card h4 { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; color: var(--main-blue); font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
         .info-row { display: flex; margin-bottom: 6px; font-size: 13px; }
-        .info-label { width: 140px; font-weight: 600; color: #666; }
+        .info-label { width: 140px; font-weight: 600; color: #666; flex-shrink: 0; }
         
         .section-box { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 15px; }
         .section-title { background: #e9ecef; padding: 8px 12px; font-weight: bold; font-size: 13px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; }
@@ -92,6 +92,35 @@
         .inner-row { background: #f8f9fa; padding: 8px; border-radius: 4px; margin-bottom: 5px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--main-blue); }
         .text-green { color: var(--success-green); font-weight: bold; }
         .text-red { color: var(--danger-red); font-weight: bold; }
+
+        /* MOBİL RESPONSIVE TASARIM KATMANI */
+        @media (max-width: 768px) {
+            body { flex-direction: column; height: auto; overflow: auto; }
+            .sidebar { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; flex-direction: row; justify-content: space-around; padding-top: 0; align-items: center; border-right: none; border-top: 1px solid var(--border-color); gap: 0; z-index: 999; }
+            .sidebar-brand { display: none; }
+            .nav-item { width: 50px; height: 50px; }
+            .navbar { height: auto; flex-direction: column; padding: 10px; gap: 5px; text-align: center; }
+            .navbar-brand { font-size: 15px; }
+            .user-profile { font-size: 12px; border-top: 1px solid rgba(255,255,255,0.2); width: 100%; justify-content: center; padding-top: 5px; margin-top: 2px; }
+            .main-wrapper { width: 100%; height: auto; overflow: visible; margin-bottom: 60px; }
+            .content-area { padding: 12px; overflow: visible; height: auto; }
+            .dashboard-banner { flex-direction: column; gap: 15px; text-align: center; padding: 15px; }
+            .logo-box { width: 80px; height: 80px; font-size: 20px; }
+            .stats-summary h2 { font-size: 18px; }
+            .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+            .stat-card { padding: 15px; }
+            .stat-card .value { font-size: 28px; }
+            .filter-section { flex-direction: column; align-items: stretch; padding: 10px; }
+            .filter-section input, .filter-section select, .filter-section .btn { width: 100%; text-align: center; justify-content: center; }
+            .info-grid { grid-template-columns: 1fr; gap: 12px; }
+            .modal-box { width: 95%; max-height: 85vh; margin: 20px auto; }
+            .modal-body { padding: 12px; gap: 12px; }
+            .info-row { flex-direction: column; margin-bottom: 8px; }
+            .info-label { width: 100%; margin-bottom: 2px; color: #888; }
+            .section-box select { width: 100%; margin-left: 0 !important; margin-top: 8px; display: block; padding: 6px; }
+            .inner-row { flex-direction: column; align-items: flex-start; gap: 5px; }
+            .modal-body div[style*="display:flex; justify-content:space-between;"] { flex-direction: column; gap: 5px; }
+        }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -181,9 +210,9 @@
         <div id="ayarlar" class="content-area">
             <div class="setting-group">
                 <h3>Servis Aşamaları / Durum Yönetimi</h3>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <input type="text" id="newStatusInput" placeholder="Yeni aşama adı yazın (Örn: Parça Bekliyor)..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:4px;">
-                    <button class="btn btn-green" onclick="addNewStatus()">Aşama Ekle</button>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <input type="text" id="newStatusInput" placeholder="Yeni aşama adı yazın (Örn: Parça Bekliyor)..." style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:4px; min-width: 200px;">
+                    <button class="btn btn-green" onclick="addNewStatus()" style="width: 100%; justify-content: center;">Aşama Ekle</button>
                 </div>
                 <div id="statusSettingsList"></div>
             </div>
@@ -242,7 +271,7 @@
                 </div>
 
                 <div style="margin-top:10px; text-align:right;">
-                    <button class="btn btn-danger" onclick="deleteActiveServis()">⚠️ Bu Servis Kaydını Tamamen Sil</button>
+                    <button class="btn btn-danger" onclick="deleteActiveServis()" style="width: 100%; justify-content: center;">⚠️ Bu Servis Kaydını Tamamen Sil</button>
                 </div>
 
             </div>
@@ -556,9 +585,7 @@
             status: db.durumlar[0] || "Açık Talep"
         };
 
-        // Yeni kaydı Firebase'e push ediyoruz
         const newRef = database.ref('ekzen_db/servisler').push(newServis);
-        // Alt işlem kaydını ekliyoruz
         database.ref(`ekzen_db/servisler/${newRef.key}/islemler`).push({ time: timeStr, text: "Sistem: Yeni Servis Kaydı Açıldı" });
     }
 
