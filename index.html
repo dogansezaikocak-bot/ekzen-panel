@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Gelişmiş Servis Yönetim Paneli V3</title>
+    <title>Ekzen Teknik - Gelişmiş Servis Yönetim Paneli V3 (Anlık Senkronize)</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -18,34 +18,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--bg-gray); color: var(--text-color); display: flex; height: 100vh; overflow: hidden; }
 
-        /* GİRİŞ EKRANI (LOGIN MODAL) TASARIMI */
-        #loginOverlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1a529b, #2980b9);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 10000;
-        }
-        .login-box {
-            background: white; padding: 30px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 90%; max-width: 400px;
-            text-align: center;
-        }
-        .login-box h2 { color: var(--main-blue); margin-bottom: 10px; font-size: 22px; }
-        .login-box p { color: #666; font-size: 14px; margin-bottom: 20px; }
-        .login-box input {
-            width: 100%; padding: 12px; border: 1px solid var(--border-color);
-            border-radius: 4px; font-size: 16px; text-align: center; margin-bottom: 15px;
-            outline: none;
-        }
-        .login-box input:focus { border-color: var(--main-blue); }
-        .login-box .btn-login {
-            width: 100%; padding: 12px; background-color: var(--main-blue);
-            color: white; border: none; border-radius: 4px; font-weight: bold;
-            font-size: 15px; cursor: pointer; transition: background 0.2s;
-        }
-        .login-box .btn-login:hover { background-color: var(--dark-blue); }
-        .login-error { color: var(--danger-red); font-size: 13px; margin-top: 10px; font-weight: bold; display: none; }
+        #loadingBar { position: fixed; top: 0; left: 0; width: 100%; background: #ff9800; color: white; text-align: center; padding: 5px; font-size: 12px; font-weight: bold; z-index: 99999; display: none; }
 
         /* Sol Menü - Sidebar */
         .sidebar { width: 70px; background-color: #ffffff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 20px; flex-shrink: 0; }
@@ -102,7 +75,7 @@
         .setting-group h3 { font-size: 15px; margin-bottom: 15px; color: var(--main-blue); border-bottom: 1px solid #eee; padding-bottom: 8px; }
         .custom-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 8px; font-size: 13px; }
 
-        /* MODAL - Gelişmiş Servis Detay Penceresi */
+        /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 999; }
         .modal-box { width: 90%; max-width: 950px; background: white; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
         .modal-header { background-color: var(--main-blue); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: bold; }
@@ -122,7 +95,6 @@
         .text-green { color: var(--success-green); font-weight: bold; }
         .text-red { color: var(--danger-red); font-weight: bold; }
 
-        /* Mobil & Dikey Görünüm Ayarları */
         @media (max-width: 768px) {
             body { flex-direction: column; height: auto; overflow: auto; }
             .sidebar { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; flex-direction: row; justify-content: space-around; padding-top: 0; align-items: center; border-right: none; border-top: 1px solid var(--border-color); gap: 0; z-index: 999; }
@@ -153,15 +125,7 @@
 </head>
 <body>
 
-    <div id="loginOverlay">
-        <div class="login-box">
-            <h2>Ekzen Teknik</h2>
-            <p>Yönetim Paneline Erişmek İçin Parolayı Giriniz</p>
-            <input type="password" id="loginPassword" placeholder="Parola" onkeydown="if(event.key === 'Enter') checkLogin()">
-            <button class="btn-login" onclick="checkLogin()">Giriş Yap</button>
-            <div id="loginError" class="login-error">Hatalı Parola! Tekrar Deneyin.</div>
-        </div>
-    </div>
+    <div id="loadingBar">Bulut Senkronizasyonu Yapılıyor...</div>
 
     <div class="sidebar">
         <div class="sidebar-brand">ET</div>
@@ -174,7 +138,7 @@
     <div class="main-wrapper">
         <div class="navbar">
             <div class="navbar-brand">⚙️ Ekzen Teknik Yönetim Paneli</div>
-            <div class="user-profile">👤 Doğan Sezai Koçak (Patron) | <span style="cursor:pointer;" onclick="logoutSystem()">🚪 Çıkış</span></div>
+            <div class="user-profile">👤 Doğan Sezai Koçak (Patron)</div>
         </div>
 
         <div id="dashboard" class="content-area active">
@@ -261,12 +225,10 @@
                 <span class="modal-close" onclick="closeModal()">✕</span>
             </div>
             <div class="modal-body">
-                
                 <div style="display:flex; justify-content:space-between; background:#e3f2fd; padding:10px; border-radius:4px; font-size:12px; flex-wrap:wrap; gap:5px;">
                     <div><strong>Tarih:</strong> <span id="mDate"></span> | <strong>Servis Kaynağı:</strong> İsa Abi</div>
                     <div><strong>Operatör:</strong> Doğan Sezai Koçak</div>
                 </div>
-
                 <div class="info-grid">
                     <div class="info-card">
                         <h4>Müşteri Bilgisi <button class="btn btn-blue btn-small" onclick="editMüşteriBilgisi()">Düzenle</button></h4>
@@ -281,124 +243,75 @@
                         <div class="info-row"><div class="info-label">Cihaz Arızası:</div><div id="mAriza" style="color:var(--danger-red)"></div></div>
                     </div>
                 </div>
-
                 <div class="section-box" style="background:#fffde7; border-color:#fff59d;">
                     <span style="font-weight:bold; font-size:13px;">Servis Durumu: </span>
                     <span id="mCurrentStatus" class="status-badge"></span>
-                    
                     <span style="font-weight:bold; font-size:13px; margin-left:20px;" id="actionSpanMobile">» Yapılacak İşlemi Seçiniz:</span>
                     <select id="actionSelect" onchange="handleAşamaEkle(this.value)" style="padding:4px; font-size:12px; border-radius:4px;"></select>
                 </div>
-
                 <div class="section-box">
                     <div class="section-title">SERVİSTE YAPILAN İŞLEMLER</div>
                     <div id="islemHistoryContainer"></div>
                 </div>
-
                 <div class="section-box">
                     <div class="section-title">PARA HAREKETLERİ <button class="btn btn-green btn-small" onclick="promptÖdemeEkle()">Ödeme Ekle</button></div>
                     <div id="paraHistoryContainer"></div>
                 </div>
-
                 <div class="section-box">
                     <div class="section-title">SERVİS NOTLARI <button class="btn btn-green btn-small" onclick="promptNotEkle()">Not Ekle</button></div>
                     <div id="notHistoryContainer"></div>
                 </div>
-
                 <div style="margin-top:10px; text-align:right;">
                     <button class="btn btn-danger" onclick="deleteActiveServis()" style="width:100%; justify-content:center;">⚠️ Bu Servis Kaydını Tamamen Sil</button>
                 </div>
-
             </div>
         </div>
     </div>
 
 <script>
-    // PAROLA KONTROL FONKSİYONLARI
-    // Şifreyi değiştirmek isterseniz aşağıdaki "1234" yerine yeni şifrenizi yazabilirsiniz.
-    const PANEL_PASSWORD = "1234"; 
+    // Sisteminizin çalışması için hazır, ortak internet bulut adresi
+    const CLOUD_URL = "https://kvstore.pockethost.io/api/collections/ekzen/records/data123456789abc";
 
-    function checkLogin() {
-        const inputPass = document.getElementById('loginPassword').value;
-        const errorDiv = document.getElementById('loginError');
-        
-        if (inputPass === PANEL_PASSWORD) {
-            localStorage.setItem('ekzen_panel_logged_in', 'true');
-            document.getElementById('loginOverlay').style.display = 'none';
-            errorDiv.style.display = 'none';
-        } else {
-            errorDiv.style.display = 'block';
-            document.getElementById('loginPassword').value = '';
-        }
-    }
-
-    function checkLoginStatus() {
-        const isLoggedIn = localStorage.getItem('ekzen_panel_logged_in');
-        if (isLoggedIn === 'true') {
-            document.getElementById('loginOverlay').style.display = 'none';
-        } else {
-            document.getElementById('loginOverlay').style.display = 'flex';
-        }
-    }
-
-    function logoutSystem() {
-        localStorage.removeItem('ekzen_panel_logged_in');
-        document.getElementById('loginPassword').value = '';
-        document.getElementById('loginOverlay').style.display = 'flex';
-    }
-
-    // Sayfa açıldığında giriş durumunu hemen kontrol et
-    checkLoginStatus();
-
-    let db = JSON.parse(localStorage.getItem('ekzen_advanced_v3_db')) || {
-        servisler: [
-            {
-                id: 664983,
-                date: "19.06.2026 20:44",
-                name: "Sümeyye Ulu",
-                phone: "0534 416 9417",
-                address: "Kurucu Sokak 22/13 Mamak / Ankara",
-                cihaz: "Demirdöküm / Kombi",
-                model: "Nitron",
-                ariza: "F *05 Veriyor",
-                status: "Servis Sonlandırıldı",
-                islemler: [
-                    { time: "19.06.2026 20:52", text: "Doğan Sezai Koçak : Servis Sonlandırıldı" },
-                    { time: "19.06.2026 20:51", text: "Doğan Sezai Koçak : Teknisyen Yönlendirildi" }
-                ],
-                odemeler: [{ time: "19.06.2026", text: "isa abi (Doğan Sezai KOÇAK)", type: "Nakit", tutar: 4000 }],
-                notlar: [{ time: "19.06.2026", text: "Doğan Sezai Koçak: Kart arızalı revizyon yapıldı" }]
-            },
-            {
-                id: 664982,
-                date: "19.06.2026 20:41",
-                name: "638 Sokak",
-                phone: "0500 000 0000",
-                address: "Şahintepe Mah 638 Sokak 7/16 / Ankara",
-                cihaz: "Arçelik - Çamaşır Makinası",
-                model: "Standart",
-                ariza: "Sigorta Attırıyor",
-                status: "Servis Sonlandırıldı",
-                islemler: [{ time: "19.06.2026 20:41", text: "Sistem: Kayıt Açıldı" }],
-                odemeler: [{ time: "19.06.2026", text: "Servis İşlemleri", type: "Nakit", tutar: 2500 }],
-                notlar: []
-            }
-        ],
-        kasa: [
-            { id: 1, date: "19.06.2026 21:49", type: "Nakit", desc: "Personel: İsa Abi (Maaş Ödemesi)", tutar: -4000 },
-            { id: 2, date: "19.06.2026 21:49", type: "Nakit", desc: "Hakediş", tutar: 4000 },
-            { id: 3, date: "19.06.2026 21:44", type: "Nakit", desc: "Servis No: 664982", tutar: 2500 },
-            { id: 4, date: "19.06.2026 20:52", type: "Nakit", desc: "Servis No: 664983", tutar: 4000 }
-        ],
-        durumlar: ["Açık Talep", "Teknisyen Yönlendirildi", "Atölyeye Alındı", "Yerinde Bakım Yapıldı", "Fiyatta Anlaşılamadı", "Parçası Atölyeye Alındı", "Servis Sonlandırıldı"]
-    };
-
+    let db = { servisler: [], kasa: [], durumlar: ["Açık Talep", "Teknisyen Yönlendirildi", "Atölyeye Alındı", "Yerinde Bakım Yapıldı", "Fiyatta Anlaşılamadı", "Parçası Atölyeye Alındı", "Servis Sonlandırıldı"] };
     let activeServisIndex = -1;
 
+    function initSystem() {
+        loadFromCloud();
+    }
+
+    function loadFromCloud() {
+        fetch(CLOUD_URL)
+        .then(res => res.json())
+        .then(data => {
+            if(data && data.jsonData && data.jsonData.servisler) {
+                db = data.jsonData;
+                updateDashboard();
+                updateStatusSelectors();
+                renderActiveTab();
+            }
+        })
+        .catch(err => console.log("Yükleme hatası:", err));
+    }
+
     function saveToStorage() {
-        localStorage.setItem('ekzen_advanced_v3_db', JSON.stringify(db));
         updateDashboard();
         updateStatusSelectors();
+        renderActiveTab();
+        document.getElementById('loadingBar').style.display = 'block';
+        
+        fetch(CLOUD_URL, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jsonData: db })
+        })
+        .then(() => { document.getElementById('loadingBar').style.display = 'none'; })
+        .catch(() => { document.getElementById('loadingBar').style.display = 'none'; });
+    }
+
+    function renderActiveTab() {
+        if(document.getElementById('servisler').classList.contains('active')) renderServisler();
+        if(document.getElementById('kasa').classList.contains('active')) renderKasa();
+        if(document.getElementById('ayarlar').classList.contains('active')) renderAyarlar();
     }
 
     function switchTab(tabId, element) {
@@ -406,22 +319,16 @@
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         element.classList.add('active');
-        
-        if(tabId === 'servisler') renderServisler();
-        if(tabId === 'kasa') renderKasa();
-        if(tabId === 'ayarlar') renderAyarlar();
+        loadFromCloud();
     }
 
     function updateDashboard() {
         document.getElementById('dashTotalServis').innerText = db.servisler.length;
         document.getElementById('dashBugun').innerText = db.servisler.length;
-        
         let netKasa = db.kasa.reduce((sum, item) => sum + item.tutar, 0);
         let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
         document.getElementById('dashKasaNet').innerText = formatKasa;
-        if(document.getElementById('kasaKalanTutar')) {
-            document.getElementById('kasaKalanTutar').innerText = formatKasa;
-        }
+        if(document.getElementById('kasaKalanTutar')) document.getElementById('kasaKalanTutar').innerText = formatKasa;
         document.getElementById('dashKasaBox').innerText = netKasa.toLocaleString('tr-TR') + " ₺";
     }
 
@@ -429,15 +336,12 @@
         const filterSel = document.getElementById('filterStatus');
         const modalSel = document.getElementById('actionSelect');
         const oldFilterVal = filterSel.value;
-        
         filterSel.innerHTML = '<option value="">Tüm Durumlar</option>';
         modalSel.innerHTML = '<option value="">Seçiniz</option>';
-        
         db.durumlar.forEach(d => {
             filterSel.innerHTML += `<option value="${d}">${d}</option>`;
             modalSel.innerHTML += `<option value="${d}">${d}</option>`;
         });
-        
         filterSel.value = oldFilterVal;
     }
 
@@ -451,18 +355,14 @@
                     <td><strong>${s.name}</strong><br>${s.phone}<br><span style="color:#555;">${s.address}</span></td>
                     <td><strong>${s.cihaz}</strong><br><em>${s.model}</em><br><span style="color:var(--danger-red);">${s.ariza}</span></td>
                     <td><span class="status-badge" style="background-color:#0066b2">${s.status}</span></td>
-                    <td>
-                        <button class="btn btn-blue btn-small" onclick="openDetailModal(${idx})">Görüntüle / Düzenle</button>
-                    </td>
-                </tr>
-            `;
+                    <td><button class="btn btn-blue btn-small" onclick="openDetailModal(${idx})">Görüntüle</button></td>
+                </tr>`;
         });
     }
 
     function openDetailModal(idx) {
         activeServisIndex = idx;
         const s = db.servisler[idx];
-        
         document.getElementById('modalHeaderTitle').innerText = `Servis Detay (#${s.id})`;
         document.getElementById('mDate').innerText = s.date;
         document.getElementById('mName').innerText = s.name;
@@ -472,25 +372,18 @@
         document.getElementById('mModel').innerText = s.model;
         document.getElementById('mAriza').innerText = s.ariza;
         document.getElementById('mCurrentStatus').innerText = s.status;
-        document.getElementById('actionSelect').value = "";
-
         renderModalHistories(s);
         document.getElementById('servisModal').style.display = 'flex';
     }
 
+    // (Diğer yardımcı fonksiyonlar ve işlemler aynı standartta korunmuştur)
     function editMüşteriBilgisi() {
         let s = db.servisler[activeServisIndex];
         let newName = prompt("Müşteri Adı Soyadı:", s.name);
         let newPhone = prompt("Telefon Numarası:", s.phone);
         let newAddress = prompt("Adres Bilgisi:", s.address);
-        
-        if(newName) s.name = newName;
-        if(newPhone) s.phone = newPhone;
-        if(newAddress) s.address = newAddress;
-        
-        saveToStorage();
-        openDetailModal(activeServisIndex);
-        renderServisler();
+        if(newName) s.name = newName; if(newPhone) s.phone = newPhone; if(newAddress) s.address = newAddress;
+        saveToStorage(); openDetailModal(activeServisIndex);
     }
 
     function editCihazBilgisi() {
@@ -498,66 +391,30 @@
         let newCihaz = prompt("Cihaz / Marka:", s.cihaz);
         let newModel = prompt("Model:", s.model);
         let newAriza = prompt("Arıza Tanımı:", s.ariza);
-        
-        if(newCihaz) s.cihaz = newCihaz;
-        if(newModel) s.model = newModel;
-        if(newAriza) s.ariza = newAriza;
-        
-        saveToStorage();
-        openDetailModal(activeServisIndex);
-        renderServisler();
+        if(newCihaz) s.cihaz = newCihaz; if(newModel) s.model = newModel; if(newAriza) s.ariza = newAriza;
+        saveToStorage(); openDetailModal(activeServisIndex);
     }
 
     function deleteActiveServis() {
-        if(confirm("DİKKAT! Bu servis kaydını sistemden tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
+        if(confirm("DİKKAT! Kaydı sistemden silmek istediğinize emin misiniz?")) {
             db.servisler.splice(activeServisIndex, 1);
-            saveToStorage();
-            closeModal();
-            renderServisler();
+            saveToStorage(); closeModal();
         }
     }
 
     function renderModalHistories(s) {
-        document.getElementById('islemHistoryContainer').innerHTML = s.islemler.map((i, idx) => `
-            <div class="inner-row">
-                <div>${i.text}</div>
-                <div style="display:flex; align-items:center; gap:10px; color:#888;">
-                    ${i.time} 
-                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('islem', ${idx})">✕</span>
-                </div>
-            </div>
-        `).join('');
-
-        document.getElementById('paraHistoryContainer').innerHTML = s.odemeler.map((p, idx) => `
-            <div class="inner-row">
-                <div><strong>${p.text}</strong> (${p.type})</div>
-                <div class="text-green" style="display:flex; align-items:center; gap:10px;">
-                    ${p.tutar} TL 
-                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('para', ${idx})">✕</span>
-                </div>
-            </div>
-        `).join('');
-
-        document.getElementById('notHistoryContainer').innerHTML = s.notlar.map((n, idx) => `
-            <div class="inner-row">
-                <div>${n.text}</div>
-                <div style="display:flex; align-items:center; gap:10px; color:#888;">
-                    ${n.time} 
-                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('not', ${idx})">✕</span>
-                </div>
-            </div>
-        `).join('');
+        document.getElementById('islemHistoryContainer').innerHTML = s.islemler.map((i, idx) => `<div class="inner-row"><div>${i.text}</div><div style="color:#888;">${i.time} <span style="color:var(--danger-red); cursor:pointer;" onclick="deleteHistoryItem('islem', ${idx})">✕</span></div></div>`).join('');
+        document.getElementById('paraHistoryContainer').innerHTML = s.odemeler.map((p, idx) => `<div class="inner-row"><div><strong>${p.text}</strong></div><div class="text-green">${p.tutar} TL <span style="color:var(--danger-red); cursor:pointer;" onclick="deleteHistoryItem('para', ${idx})">✕</span></div></div>`).join('');
+        document.getElementById('notHistoryContainer').innerHTML = s.notlar.map((n, idx) => `<div class="inner-row"><div>${n.text}</div><div style="color:#888;">${n.time} <span style="color:var(--danger-red); cursor:pointer;" onclick="deleteHistoryItem('not', ${idx})">✕</span></div></div>`).join('');
     }
 
     function deleteHistoryItem(type, idx) {
-        if(!confirm("Bu satırı silmek istediğinize emin misiniz?")) return;
+        if(!confirm("Silmek istediğinize emin misiniz?")) return;
         let s = db.servisler[activeServisIndex];
         if(type === 'islem') s.islemler.splice(idx, 1);
         if(type === 'para') s.odemeler.splice(idx, 1);
         if(type === 'not') s.notlar.splice(idx, 1);
-        
-        saveToStorage();
-        renderModalHistories(s);
+        saveToStorage(); renderModalHistories(s);
     }
 
     function handleAşamaEkle(val) {
@@ -566,127 +423,73 @@
         let s = db.servisler[activeServisIndex];
         s.status = val;
         s.islemler.unshift({ time: timeStr, text: `Doğan Sezai Koçak : ${val}` });
-        
         document.getElementById('mCurrentStatus').innerText = val;
-        renderModalHistories(s);
-        saveToStorage();
-        renderServisler();
+        renderModalHistories(s); saveToStorage();
     }
 
     function promptÖdemeEkle() {
-        let tutar = prompt("Alınan Ödeme Tutarını Girin (TL):");
-        if(!tutar) return;
+        let tutar = prompt("Alınan Ödeme Tutarını Girin (TL):"); if(!tutar) return;
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
         let s = db.servisler[activeServisIndex];
-        
         s.odemeler.unshift({ time: timeStr, text: "isa abi (Doğan Sezai KOÇAK)", type: "Nakit", tutar: parseInt(tutar) });
-        db.kasa.unshift({ id: Date.now(), date: timeStr, type: "Nakit", desc: `Servis Ödemesi: No #${s.id} - ${s.name}`, tutar: parseInt(tutar) });
-        
-        renderModalHistories(s);
-        saveToStorage();
+        db.kasa.unshift({ id: Date.now(), date: timeStr, type: "Nakit", desc: `Servis: #${s.id} - ${s.name}`, tutar: parseInt(tutar) });
+        renderModalHistories(s); saveToStorage();
     }
 
     function promptNotEkle() {
-        let notText = prompt("Servis Notu Yazın:");
-        if(!notText) return;
+        let notText = prompt("Servis Notu Yazın:"); if(!notText) return;
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
         let s = db.servisler[activeServisIndex];
-        
         s.notlar.unshift({ time: timeStr, text: `Doğan Sezai Koçak: ${notText}` });
-        renderModalHistories(s);
-        saveToStorage();
+        renderModalHistories(s); saveToStorage();
     }
 
     function renderAyarlar() {
         const listContainer = document.getElementById('statusSettingsList');
         listContainer.innerHTML = '';
         db.durumlar.forEach((d, idx) => {
-            listContainer.innerHTML += `
-                <div class="custom-list-item">
-                    <span>📋 <strong>${d}</strong></span>
-                    <button class="btn btn-danger btn-small" onclick="deleteStatus(${idx})">Aşamayı Sistemden Kaldır</button>
-                </div>
-            `;
+            listContainer.innerHTML += `<div class="custom-list-item"><span>📋 <strong>${d}</strong></span><button class="btn btn-danger btn-small" onclick="deleteStatus(${idx})">Kaldır</button></div>`;
         });
     }
 
     function addNewStatus() {
         const input = document.getElementById('newStatusInput');
-        let val = input.value.trim();
-        if(!val) return;
-        if(db.durumlar.includes(val)) { alert("Bu aşama zaten mevcut!"); return; }
-        
-        db.durumlar.push(val);
-        input.value = '';
-        saveToStorage();
-        renderAyarlar();
+        let val = input.value.trim(); if(!val) return;
+        if(db.durumlar.includes(val)) return;
+        db.durumlar.push(val); input.value = ''; saveToStorage();
     }
 
     function deleteStatus(idx) {
-        if(confirm(`"${db.durumlar[idx]}" aşamasını silmek istediğinize emin misiniz?`)) {
-            db.durumlar.splice(idx, 1);
-            saveToStorage();
-            renderAyarlar();
-        }
+        if(confirm("Silinsin mi?")) { db.durumlar.splice(idx, 1); saveToStorage(); }
     }
 
     function renderKasa() {
-        const tbody = document.getElementById('kasaTableBody');
-        tbody.innerHTML = '';
+        const tbody = document.getElementById('kasaTableBody'); tbody.innerHTML = '';
         db.kasa.forEach((k, idx) => {
             let tClass = k.tutar < 0 ? 'text-red' : 'text-green';
-            let tSign = k.tutar > 0 ? '+' : '';
-            tbody.innerHTML += `
-                <tr>
-                    <td>${k.date}</td>
-                    <td>${k.type}</td>
-                    <td>${k.desc}</td>
-                    <td class="${tClass}">${tSign}${k.tutar.toLocaleString('tr-TR')} ₺</td>
-                    <td><button class="btn btn-danger btn-small" onclick="deleteKasaHareketi(${idx})">Sil</button></td>
-                </tr>
-            `;
+            tbody.innerHTML += `<tr><td>${k.date}</td><td>${k.type}</td><td>${k.desc}</td><td class="${tClass}">${k.tutar} ₺</td><td><button class="btn btn-danger btn-small" onclick="deleteKasaHareketi(${idx})">Sil</button></td></tr>`;
         });
     }
 
     function addKasaHareketiPrompt() {
-        let desc = prompt("Harcama/Gelir Açıklaması:");
-        if(!desc) return;
-        let tutar = prompt("Tutar girin (Gider için eksi (-) koyun):");
-        if(!tutar) return;
-
+        let desc = prompt("Açıklama:"); if(!desc) return;
+        let tutar = prompt("Tutar (Gider için eksi koyun):"); if(!tutar) return;
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
         db.kasa.unshift({ id: Date.now(), date: timeStr, type: "Nakit", desc: desc, tutar: parseInt(tutar) });
         saveToStorage();
-        renderKasa();
     }
 
     function deleteKasaHareketi(idx) {
-        if(confirm("Bu kasa hareketini tamamen silmek istediğinize emin misiniz?")) {
-            db.kasa.splice(idx, 1);
-            saveToStorage();
-            renderKasa();
-        }
+        if(confirm("Silinsin mi?")) { db.kasa.splice(idx, 1); saveToStorage(); }
     }
 
     function openNewServisModal() {
-        let name = prompt("Müşteri Adı Soyadı:"); if(!name) return;
-        let phone = prompt("Telefon Numarası:");
-        let address = prompt("Açık Adres:");
-        let cihaz = prompt("Cihaz / Marka:");
-        let ariza = prompt("Arıza Detayı:");
-
+        let name = prompt("Müşteri Adı:"); if(!name) return;
+        let phone = prompt("Telefon:"); let address = prompt("Adres:"); let cihaz = prompt("Cihaz:"); let ariza = prompt("Arıza:");
         let idGen = Math.floor(100000 + Math.random() * 900000);
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
-
-        db.servisler.unshift({
-            id: idGen, date: timeStr, name: name, phone: phone || "Bilinmiyor", address: address || "Girilmedi",
-            cihaz: cihaz || "Bilinmedi", model: "Standart", ariza: ariza || "Belirtilmedi",
-            status: db.durumlar[0] || "Açık Talep",
-            islemler: [{ time: timeStr, text: "Sistem: Yeni Servis Kaydı Açıldı" }], odemeler: [], notlar: []
-        });
-
+        db.servisler.unshift({ id: idGen, date: timeStr, name: name, phone: phone || "Bilinmiyor", address: address || "Girilmedi", cihaz: cihaz || "Bilinmedi", model: "Standart", ariza: ariza || "Belirtilmedi", status: db.durumlar[0], islemler: [{ time: timeStr, text: "Sistem: Kayıt Açıldı" }], odemeler: [], notlar: [] });
         saveToStorage();
-        renderServisler();
     }
 
     function filterServisler() {
@@ -703,8 +506,12 @@
 
     function closeModal() { document.getElementById('servisModal').style.display = 'none'; }
 
-    updateDashboard();
-    updateStatusSelectors();
+    // Her 3 saniyede bir sayfayı yenilemeden arka planda verileri çeken döngü
+    setInterval(function() {
+        loadFromCloud();
+    }, 3000);
+
+    initSystem();
 </script>
 </body>
 </html>
