@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V19 Ana Sayfa Filtre Açık İşler</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V21 Sıralı Servis Kayıt</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -83,6 +83,16 @@
         .form-field textarea { min-height: 80px; resize: vertical; }
         .required-star { color: var(--danger-red); font-weight: bold; }
         .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 10px; border-top: 1px solid #eee; margin-top: 5px; }
+        .wizard-wrap { background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:18px; }
+        .wizard-progress { font-size:12px; color:#666; font-weight:700; margin-bottom:10px; }
+        .wizard-step { display:none; }
+        .wizard-step.active { display:flex; flex-direction:column; gap:8px; }
+        .wizard-step label { font-size:15px; font-weight:700; color:var(--main-blue); }
+        .wizard-step input, .wizard-step textarea { padding:14px; border:1px solid var(--border-color); border-radius:8px; font-size:16px; width:100%; background:white; }
+        .wizard-step textarea { min-height:110px; resize:vertical; }
+        .wizard-help { font-size:12px; color:#777; }
+        .wizard-buttons { display:flex; gap:10px; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid #eee; }
+        .wizard-buttons .right-buttons { display:flex; gap:10px; }
         .quick-action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
         .btn-whatsapp { background-color: #25D366; color: white; }
         .btn-gray { background-color: #64748b; color: white; }
@@ -348,6 +358,15 @@
             .service-list-panel .status-badge { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; white-space: normal; }
             .complaint-line { margin-top: 9px; background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 8px 10px; color: #9a3412 !important; font-weight: 700; }
             .complaint-line::before { content: 'Şikayet: '; color: #92400e; }
+        }
+
+        @media (max-width: 768px) {
+            .wizard-wrap { padding: 14px; border-radius: 10px; }
+            .wizard-step input, .wizard-step textarea { font-size: 16px; min-height: 48px; }
+            .wizard-step textarea { min-height: 120px; }
+            .wizard-buttons { flex-direction: column; }
+            .wizard-buttons .btn, .wizard-buttons .right-buttons { width: 100%; justify-content: center; }
+            .wizard-buttons .right-buttons { display: flex; flex-direction: column; }
         }
     </style>
 
@@ -652,64 +671,75 @@
 
 
     <div class="modal-overlay" id="newServisModal">
-        <div class="modal-box" style="max-width: 750px;">
+        <div class="modal-box" style="max-width: 620px;">
             <div class="modal-header">
                 <span>Yeni Servis Kaydı</span>
                 <span class="modal-close" onclick="closeNewServisModal()">✕</span>
             </div>
             <div class="modal-body">
-                <div class="section-box">
-                    <div class="section-title">MÜŞTERİ VE CİHAZ BİLGİLERİ</div>
-                    <div class="form-grid">
-                        <div class="form-field">
-                            <label for="newName">Müşteri Adı Soyadı <span class="required-star">*</span></label>
-                            <input type="text" id="newName" placeholder="Örn: Ahmet Yılmaz">
-                        </div>
-                        <div class="form-field">
-                            <label for="newPhone">Telefon</label>
-                            <input type="tel" id="newPhone" placeholder="Örn: 05xx xxx xx xx">
-                        </div>
-                        <div class="form-field">
-                            <label for="newServiceDate">Servis / Gidiş Tarihi</label>
-                            <input type="datetime-local" id="newServiceDate">
-                        </div>
-                        <div class="form-field postponed-field">
-                            <label for="newPostponedDate">Ertelenen Servis Tarihi</label>
-                            <input type="datetime-local" id="newPostponedDate">
-                        </div>
-                        <div class="form-field full">
-                            <label for="newAddress">Açık Adres</label>
-                            <textarea id="newAddress" placeholder="Mahalle, cadde, sokak, bina, daire..."></textarea>
-                        </div>
-                        <div class="form-field">
-                            <label for="newCihaz">Cihaz / Marka</label>
-                            <input type="text" id="newCihaz" placeholder="Örn: Bosch Çamaşır Makinesi">
-                        </div>
-                        <div class="form-field">
-                            <label for="newModel">Cihaz Modeli</label>
-                            <input type="text" id="newModel" placeholder="Örn: WGA142X0TR">
-                        </div>
-                        <div class="form-field full">
-                            <label for="newAriza">Arıza Detayı</label>
-                            <textarea id="newAriza" placeholder="Müşterinin söylediği arıza / yapılacak işlem..."></textarea>
-                        </div>
-                        <div class="form-field">
-                            <label for="newSource">Servis Kaynağı</label>
-                            <select id="newSource"><option value="">Servis Kaynağı Seçiniz</option></select>
-                        </div>
-                        <div class="form-field">
-                            <label for="newTechnician">Teknisyen Ata</label>
-                            <select id="newTechnician"><option value="">Teknisyen Seçiniz</option></select>
-                        </div>
+                <div class="wizard-wrap">
+                    <div class="section-title">SIRALI SERVİS KAYDI</div>
+                    <div class="wizard-progress" id="newServisWizardProgress">1 / 7</div>
+
+                    <div class="wizard-step" data-step="0">
+                        <label for="newName">Ad Soyad <span class="required-star">*</span></label>
+                        <input type="text" id="newName" placeholder="Müşteri adı soyadı" onkeydown="handleNewServisWizardKey(event)">
+                        <div class="wizard-help">Yazıp Enter’a bas veya İleri de.</div>
                     </div>
-                    <div class="form-actions">
+
+                    <div class="wizard-step" data-step="1">
+                        <label for="newPhone">Telefon</label>
+                        <input type="tel" id="newPhone" placeholder="05xx xxx xx xx" onkeydown="handleNewServisWizardKey(event)">
+                        <div class="wizard-help">Telefonu yazıp Enter’a bas.</div>
+                    </div>
+
+                    <div class="wizard-step" data-step="2">
+                        <label for="newAddress">Adres</label>
+                        <textarea id="newAddress" placeholder="Mahalle, cadde, sokak, bina, daire..." onkeydown="handleNewServisWizardKey(event)"></textarea>
+                        <div class="wizard-help">Adres bittikten sonra Enter veya İleri.</div>
+                    </div>
+
+                    <div class="wizard-step" data-step="3">
+                        <label for="newCihaz">Marka / Cihaz</label>
+                        <input type="text" id="newCihaz" placeholder="Örn: Bosch Çamaşır Makinesi" onkeydown="handleNewServisWizardKey(event)">
+                        <div class="wizard-help">Marka veya cihaz türünü yaz.</div>
+                    </div>
+
+                    <div class="wizard-step" data-step="4">
+                        <label for="newModel">Model</label>
+                        <input type="text" id="newModel" placeholder="Örn: WGA142X0TR" onkeydown="handleNewServisWizardKey(event)">
+                        <div class="wizard-help">Model bilinmiyorsa boş bırakıp geçebilirsin.</div>
+                    </div>
+
+                    <div class="wizard-step" data-step="5">
+                        <label for="newAriza">Şikayet / Arıza</label>
+                        <textarea id="newAriza" placeholder="Müşterinin şikayeti veya yapılacak işlem..." onkeydown="handleNewServisWizardKey(event)"></textarea>
+                        <div class="wizard-help">Şikayeti yazıp İleri de.</div>
+                    </div>
+
+                    <div class="wizard-step" data-step="6">
+                        <label for="newServiceDate">Tarih</label>
+                        <input type="datetime-local" id="newServiceDate" onchange="autoFinishDateStep()" onkeydown="handleNewServisWizardKey(event)">
+                        <div class="wizard-help">Servis/gidiş tarihini seç. Sonra Kaydı Oluştur.</div>
+                    </div>
+
+                    <input type="datetime-local" id="newPostponedDate" style="display:none;">
+                    <select id="newSource" style="display:none;"><option value="">Servis Kaynağı Seçiniz</option></select>
+                    <select id="newTechnician" style="display:none;"><option value="">Teknisyen Seçiniz</option></select>
+
+                    <div class="wizard-buttons">
                         <button class="btn btn-danger" onclick="closeNewServisModal()">Vazgeç</button>
-                        <button class="btn btn-green" onclick="saveNewServisFromForm()">Kaydı Oluştur</button>
+                        <div class="right-buttons">
+                            <button class="btn btn-blue" id="newServisBackBtn" onclick="prevNewServisStep()">Geri</button>
+                            <button class="btn btn-blue" id="newServisNextBtn" onclick="nextNewServisStep()">İleri</button>
+                            <button class="btn btn-green" id="newServisSaveBtn" onclick="saveNewServisFromForm()">Kaydı Oluştur</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
 
     <div class="modal-overlay" id="paymentModal">
         <div class="modal-box" style="max-width: 520px;">
@@ -1602,6 +1632,65 @@
         }
     }
 
+
+    let newServisWizardStep = 0;
+    const newServisWizardFieldIds = ['newName', 'newPhone', 'newAddress', 'newCihaz', 'newModel', 'newAriza', 'newServiceDate'];
+
+    function showNewServisStep(step) {
+        newServisWizardStep = Math.max(0, Math.min(step, newServisWizardFieldIds.length - 1));
+        document.querySelectorAll('#newServisModal .wizard-step').forEach((el, idx) => {
+            el.classList.toggle('active', idx === newServisWizardStep);
+        });
+        const progress = document.getElementById('newServisWizardProgress');
+        if(progress) progress.innerText = `${newServisWizardStep + 1} / ${newServisWizardFieldIds.length}`;
+        const backBtn = document.getElementById('newServisBackBtn');
+        const nextBtn = document.getElementById('newServisNextBtn');
+        const saveBtn = document.getElementById('newServisSaveBtn');
+        if(backBtn) backBtn.style.display = newServisWizardStep === 0 ? 'none' : 'inline-flex';
+        if(nextBtn) nextBtn.style.display = newServisWizardStep === newServisWizardFieldIds.length - 1 ? 'none' : 'inline-flex';
+        if(saveBtn) saveBtn.style.display = newServisWizardStep === newServisWizardFieldIds.length - 1 ? 'inline-flex' : 'none';
+        const field = document.getElementById(newServisWizardFieldIds[newServisWizardStep]);
+        if(field) setTimeout(() => field.focus(), 80);
+    }
+
+    function validateNewServisStep(step) {
+        if(step === 0) {
+            const name = document.getElementById('newName').value.trim();
+            if(!name) {
+                alert('Ad soyad zorunludur.');
+                document.getElementById('newName').focus();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function nextNewServisStep() {
+        if(!validateNewServisStep(newServisWizardStep)) return;
+        showNewServisStep(newServisWizardStep + 1);
+    }
+
+    function prevNewServisStep() {
+        showNewServisStep(newServisWizardStep - 1);
+    }
+
+    function handleNewServisWizardKey(event) {
+        if(event.key === 'Enter') {
+            event.preventDefault();
+            if(newServisWizardStep === newServisWizardFieldIds.length - 1) {
+                saveNewServisFromForm();
+            } else {
+                nextNewServisStep();
+            }
+        }
+    }
+
+    function autoFinishDateStep() {
+        // Tarih seçilince kayda hazır hale getirir; kullanıcı Kaydı Oluştur'a basar.
+        const saveBtn = document.getElementById('newServisSaveBtn');
+        if(saveBtn) saveBtn.focus();
+    }
+
     function openNewServisModal() {
         document.getElementById('newName').value = '';
         document.getElementById('newPhone').value = '';
@@ -1614,11 +1703,13 @@
         document.getElementById('newModel').value = '';
         document.getElementById('newAriza').value = '';
         document.getElementById('newServisModal').style.display = 'flex';
-        setTimeout(() => document.getElementById('newName').focus(), 100);
+        showNewServisStep(0);
     }
 
     function closeNewServisModal() {
         document.getElementById('newServisModal').style.display = 'none';
+        const ariza = document.getElementById('newAriza');
+        if(ariza) ariza.placeholder = 'Müşterinin şikayeti veya yapılacak işlem...';
     }
 
     function openRepeatServisByKey(key) {
@@ -1640,7 +1731,7 @@
 
         const note = `Önceki servis no: #${oldServis.id || ''}`;
         document.getElementById('newAriza').placeholder = `${note} - Yeni arıza / yapılacak işlem yazın...`;
-        setTimeout(() => document.getElementById('newAriza').focus(), 150);
+        showNewServisStep(5);
     }
 
     function openRepeatServisFromActiveCustomer() {
@@ -1796,6 +1887,15 @@
             .service-list-panel .status-badge { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; white-space: normal; }
             .complaint-line { margin-top: 9px; background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 8px 10px; color: #9a3412 !important; font-weight: 700; }
             .complaint-line::before { content: 'Şikayet: '; color: #92400e; }
+        }
+
+        @media (max-width: 768px) {
+            .wizard-wrap { padding: 14px; border-radius: 10px; }
+            .wizard-step input, .wizard-step textarea { font-size: 16px; min-height: 48px; }
+            .wizard-step textarea { min-height: 120px; }
+            .wizard-buttons { flex-direction: column; }
+            .wizard-buttons .btn, .wizard-buttons .right-buttons { width: 100%; justify-content: center; }
+            .wizard-buttons .right-buttons { display: flex; flex-direction: column; }
         }
     </style>
             </head>
