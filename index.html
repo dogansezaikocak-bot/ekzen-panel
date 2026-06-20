@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V18 Gün Sonu Yeni Kayıt</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V19 Ana Sayfa Filtre Açık İşler</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -384,49 +384,71 @@
                 <div class="stat-card"><h3>Yarın Servis Adedi</h3><div class="value" id="dashYarin">0</div></div>
             </div>
 
+            <div class="dashboard-services-panel">
+                <div class="dashboard-services-header">
+                    <h2>Servis Filtreleme</h2>
+                    <button class="service-tab" id="filterToggleButton" onclick="toggleFilterPanel()">🔍 Filtrele</button>
+                </div>
+                <aside class="service-filter-panel filter-closed" id="serviceFilterPanel">
+                    <h3>Servis Arama</h3>
+                    <input type="text" id="searchKeyword" onkeyup="filterServisler()" placeholder="Müşteri Adı / Servis No">
+                    <input type="text" id="searchPhone" onkeyup="filterServisler()" placeholder="Telefon Numarası">
+                    <select id="filterBrand" onchange="filterServisler()">
+                        <option value="">Marka</option>
+                        <option>Bosch</option><option>Siemens</option><option>Profilo</option><option>Arçelik</option><option>Beko</option><option>Demirdöküm</option><option>Vaillant</option>
+                    </select>
+                    <select id="filterDevice" onchange="filterServisler()">
+                        <option value="">Cihaz Türü</option>
+                        <option>Çamaşır Makinesi</option><option>Bulaşık Makinesi</option><option>Buzdolabı</option><option>Kurutma Makinesi</option><option>Kombi</option><option>Klima</option><option>Süpürge</option><option>Kahve Makinesi</option>
+                    </select>
+                    <select id="filterStatus" onchange="filterServisler()"><option value="">Servis Durumu</option></select>
+                    <select id="filterSource" onchange="filterServisler()"><option value="">Servis Kaynağı</option></select>
+                    <select id="filterTechnician" onchange="filterServisler()"><option value="">Teknisyen</option></select>
+                    <select id="filterCity" onchange="filterServisler()"><option value="">Tüm İller</option><option>Ankara</option></select>
+                    <select id="filterDistrict" onchange="filterServisler()"><option value="">Tüm İlçeler</option><option>Keçiören</option><option>Pursaklar</option><option>Mamak</option><option>Yenimahalle</option><option>Altındağ</option></select>
+                    <div class="date-pair">
+                        <input type="date" id="filterDateStart" onchange="filterServisler()">
+                        <input type="date" id="filterDateEnd" onchange="filterServisler()">
+                    </div>
+                    <div class="quick-dates">
+                        <button onclick="quickDateFilter('today')">Bugün</button>
+                        <button onclick="quickDateFilter('yesterday')">Dün</button>
+                        <button onclick="quickDateFilter('week')">Bu Hafta</button>
+                        <button onclick="clearFilters()">Temizle</button>
+                    </div>
+                    <button class="btn btn-gray" style="width:100%; justify-content:center;" onclick="filterServisler()">Ara</button>
+                </aside>
+                <div class="service-title-row" style="margin-top:12px;">
+                    <h2>FİLTRE SONUÇLARI</h2>
+                    <span style="font-size:13px; color:#64748b;">Sonuç: <strong id="homeServisResultCount">0</strong></span>
+                </div>
+                <table class="service-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;"></th>
+                            <th>Tarih</th>
+                            <th>Müşteri</th>
+                            <th>Cihaz</th>
+                            <th>Durum</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="homeServisTableBody"></tbody>
+                </table>
+            </div>
+
         </div>
 
         <div id="servisler" class="content-area">
             <div class="service-shell">
                 <div class="service-tabs">
                     <button class="service-tab primary" onclick="openNewServisModal()">✎ Yeni Servis Ekle</button>
-                    <button class="service-tab" id="filterToggleButton" onclick="toggleFilterPanel()">🔍 Filtrele</button>
                     <button class="service-tab" id="todayServicesButton" onclick="showTodayServices()">➤ Bugün</button>
-                    <button class="service-tab" id="otherDaysButton" onclick="showOtherDaysServices()">📅 Diğer Günler</button>
-                    <button class="service-tab" id="newServicesButton" onclick="showNewServices()">🆕 Yeni Kayıt</button>
+                    <button class="service-tab" id="openJobsButton" onclick="showOpenJobs()">🟦 Açık İşler</button>
                     <button class="service-tab" id="allServicesButton" onclick="showAllServices()">📋 Tüm Servisler</button>
                     <button class="service-tab" id="dayEndButton" onclick="showDayEndServices()">🌙 Gün Sonu</button>
                 </div>
                 <div class="service-layout filter-closed" id="serviceLayout">
-                    <aside class="service-filter-panel filter-closed" id="serviceFilterPanel">
-                        <h3>Servis Arama</h3>
-                        <input type="text" id="searchKeyword" onkeyup="filterServisler()" placeholder="Müşteri Adı / Servis No">
-                        <input type="text" id="searchPhone" onkeyup="filterServisler()" placeholder="Telefon Numarası">
-                        <select id="filterBrand" onchange="filterServisler()">
-                            <option value="">Marka</option>
-                            <option>Bosch</option><option>Siemens</option><option>Profilo</option><option>Arçelik</option><option>Beko</option><option>Demirdöküm</option><option>Vaillant</option>
-                        </select>
-                        <select id="filterDevice" onchange="filterServisler()">
-                            <option value="">Cihaz Türü</option>
-                            <option>Çamaşır Makinesi</option><option>Bulaşık Makinesi</option><option>Buzdolabı</option><option>Kurutma Makinesi</option><option>Kombi</option><option>Klima</option><option>Süpürge</option><option>Kahve Makinesi</option>
-                        </select>
-                        <select id="filterStatus" onchange="filterServisler()"><option value="">Servis Durumu</option></select>
-                        <select id="filterSource" onchange="filterServisler()"><option value="">Servis Kaynağı</option></select>
-                        <select id="filterTechnician" onchange="filterServisler()"><option value="">Teknisyen</option></select>
-                        <select id="filterCity" onchange="filterServisler()"><option value="">Tüm İller</option><option>Ankara</option></select>
-                        <select id="filterDistrict" onchange="filterServisler()"><option value="">Tüm İlçeler</option><option>Keçiören</option><option>Pursaklar</option><option>Mamak</option><option>Yenimahalle</option><option>Altındağ</option></select>
-                        <div class="date-pair">
-                            <input type="date" id="filterDateStart" onchange="filterServisler()">
-                            <input type="date" id="filterDateEnd" onchange="filterServisler()">
-                        </div>
-                        <div class="quick-dates">
-                            <button onclick="quickDateFilter('today')">Bugün</button>
-                            <button onclick="quickDateFilter('yesterday')">Dün</button>
-                            <button onclick="quickDateFilter('week')">Bu Hafta</button>
-                            <button onclick="clearFilters()">Temizle</button>
-                        </div>
-                        <button class="btn btn-gray" style="width:100%; justify-content:center;" onclick="filterServisler()">Ara</button>
-                    </aside>
                     <main class="service-list-panel">
                         <div class="service-title-row">
                             <h2>SERVİS LİSTESİ</h2>
@@ -754,8 +776,9 @@
             updateDashboard();
             updateStatusSelectors();
             renderDashboardNewServices();
+            renderServisler();
             
-            if(document.getElementById('servisler').classList.contains('active')) renderServisler();
+            if(document.getElementById('servisler').classList.contains('active')) filterServisler();
             if(document.getElementById('kasa').classList.contains('active')) renderKasa();
             if(document.getElementById('ayarlar').classList.contains('active')) renderAyarlar();
             
@@ -784,7 +807,8 @@
         document.getElementById(tabId).classList.add('active');
         element.classList.add('active');
         
-        if(tabId === 'servisler') renderServisler();
+        if(tabId === 'dashboard') { renderServisler(); filterServisler(); }
+        if(tabId === 'servisler') { renderServisler(); filterServisler(); }
         if(tabId === 'kasa') renderKasa();
         if(tabId === 'ayarlar') renderAyarlar();
     }
@@ -907,6 +931,11 @@
         return status.includes('SONLANDIR') || status.includes('KAPANDI') || status.includes('KAPALI') || status.includes('TAMAMLANDI') || status.includes('BİTTİ') || status.includes('BITTI') || status.includes('İPTAL') || status.includes('IPTAL');
     }
 
+    function isOpenJobRecord(s) {
+        const status = normalizeText(s.status || '');
+        return !(status.includes('İŞLEM TAMAM') || status.includes('ISLEM TAMAM') || status.includes('HESAP KAPATILDI'));
+    }
+
     function renderDashboardNewServices() {
         const tbody = document.getElementById('dashboardNewServicesBody');
         const empty = document.getElementById('dashboardEmptyNewServices');
@@ -937,12 +966,10 @@
 
     function toggleFilterPanel() {
         const panel = document.getElementById('serviceFilterPanel');
-        const layout = document.getElementById('serviceLayout');
         const btn = document.getElementById('filterToggleButton');
-        if(!panel || !layout) return;
+        if(!panel) return;
         const willClose = !panel.classList.contains('filter-closed');
         panel.classList.toggle('filter-closed', willClose);
-        layout.classList.toggle('filter-closed', willClose);
         if(btn) btn.innerText = willClose ? '🔍 Filtrele' : '✖ Filtreyi Kapat';
         if(willClose) clearFilters();
     }
@@ -958,10 +985,14 @@
         filterServisler();
     }
 
-    function showNewServices() {
-        activeServiceTab = 'new';
+    function showOpenJobs() {
+        activeServiceTab = 'open';
         clearFilters(false);
         filterServisler();
+    }
+
+    function showNewServices() {
+        showOpenJobs();
     }
 
     function showOtherDaysServices() {
@@ -1027,6 +1058,8 @@
                 </tr>
             `;
         });
+        const homeTbody = document.getElementById('homeServisTableBody');
+        if(homeTbody) homeTbody.innerHTML = tbody.innerHTML;
         filterServisler();
     }
 
@@ -1816,11 +1849,14 @@
         let district = normalizeText(document.getElementById('filterDistrict')?.value);
         let startDate = document.getElementById('filterDateStart')?.value;
         let endDate = document.getElementById('filterDateEnd')?.value;
-        const trs = document.getElementById('servisTableBody').getElementsByTagName('tr');
+        const primaryRows = document.getElementById('servisTableBody')?.getElementsByTagName('tr') || [];
+        const homeRows = document.getElementById('homeServisTableBody')?.getElementsByTagName('tr') || [];
+        const homeRowMap = {};
+        for (let r of homeRows) homeRowMap[r.dataset.key] = r;
         let count = 0;
 
-        for (let i = 0; i < trs.length; i++) {
-            const key = trs[i].dataset.key;
+        for (let i = 0; i < primaryRows.length; i++) {
+            const key = primaryRows[i].dataset.key;
             const s = db.servisler.find(item => item._key === key) || {};
             const allText = normalizeText(`${s.id} ${s.name} ${s.phone} ${s.address} ${s.cihaz} ${s.model} ${s.ariza} ${s.status} ${s.source} ${s.technician || s.teknisyen || ''}`);
             const onlyPhone = (s.phone || '').replace(/\D/g, '');
@@ -1836,6 +1872,7 @@
             if(activeServiceTab === 'today') match = match && getServicePlanDateKey(s) === getLocalDateKey(0);
             if(activeServiceTab === 'dayEnd') match = match && getServicePlanDateKey(s) === getLocalDateKey(0) && isNewServiceRecord(s);
             if(activeServiceTab === 'new') match = match && isNewServiceRecord(s);
+            if(activeServiceTab === 'open') match = match && isOpenJobRecord(s);
             if(activeServiceTab === 'future') match = match && getServicePlanDateKey(s) > getLocalDateKey(0);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
             if(activeServiceTab === 'planlama') match = match && !!(s.serviceDate || s.postponedDate);
@@ -1843,16 +1880,18 @@
             if(city) match = match && normalizeText(s.address).includes(city);
             if(district) match = match && normalizeText(s.address).includes(district);
 
-            const serviceRaw = s.serviceDate || '';
-            const serviceDay = serviceRaw ? serviceRaw.substring(0,10) : '';
+            const serviceDay = getServicePlanDateKey(s);
             if(startDate) match = match && serviceDay && serviceDay >= startDate;
             if(endDate) match = match && serviceDay && serviceDay <= endDate;
 
-            trs[i].style.display = match ? '' : 'none';
+            primaryRows[i].style.display = match ? '' : 'none';
+            if(homeRowMap[key]) homeRowMap[key].style.display = match ? '' : 'none';
             if(match) count++;
         }
         const counter = document.getElementById('servisResultCount');
         if(counter) counter.innerText = count;
+        const homeCounter = document.getElementById('homeServisResultCount');
+        if(homeCounter) homeCounter.innerText = count;
     }
 
     function quickDateFilter(type) {
