@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V16 Tarih ve Gün Sekmeleri</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V17 Ana Sayfa ve Gün Sonu</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -373,8 +373,8 @@
                 <div class="logo-box">EKZEN</div>
                 <div class="stats-summary">
                     <h2>Ekzen Teknik</h2>
-                    <p>Ana sayfada sadece yeni kayıt bekleyen servisler listelenir.</p>
-                    <p>Toplam Aktif Servis: <span id="dashTotalServis">0</span></p>
+                    <p>Kasa Durumu: <span id="dashHomeKasa">0,00 TL</span></p>
+                    <p>Toplam Açılan Kayıt: <span id="dashTotalServis">0</span> adet</p>
                 </div>
             </div>
             
@@ -384,24 +384,6 @@
                 <div class="stat-card"><h3>Yarın Servis Adedi</h3><div class="value" id="dashYarin">0</div></div>
             </div>
 
-            <div class="dashboard-services-panel">
-                <div class="dashboard-services-header">
-                    <h2>YENİ KAYIT OLAN SERVİSLER</h2>
-                </div>
-                <table class="service-table">
-                    <thead>
-                        <tr>
-                            <th>Tarih</th>
-                            <th>Müşteri</th>
-                            <th>Cihaz</th>
-                            <th>Durum</th>
-                            <th>İşlem</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dashboardNewServicesBody"></tbody>
-                </table>
-                <div id="dashboardEmptyNewServices" class="empty-state" style="display:none;">Yeni kayıt bekleyen servis yok.</div>
-            </div>
         </div>
 
         <div id="servisler" class="content-area">
@@ -413,6 +395,7 @@
                     <button class="service-tab" id="otherDaysButton" onclick="showOtherDaysServices()">📅 Diğer Günler</button>
                     <button class="service-tab" id="newServicesButton" onclick="showNewServices()">🆕 Yeni Kayıt</button>
                     <button class="service-tab" id="allServicesButton" onclick="showAllServices()">📋 Tüm Servisler</button>
+                    <button class="service-tab" id="dayEndButton" onclick="showDayEndServices()">🌙 Gün Sonu</button>
                 </div>
                 <div class="service-layout filter-closed" id="serviceLayout">
                     <aside class="service-filter-panel filter-closed" id="serviceFilterPanel">
@@ -846,6 +829,8 @@
         let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
         const kasaKalan = document.getElementById('kasaKalanTutar');
         if(kasaKalan) kasaKalan.innerText = formatKasa;
+        const dashHomeKasa = document.getElementById('dashHomeKasa');
+        if(dashHomeKasa) dashHomeKasa.innerText = formatKasa;
     }
 
     function updateStatusSelectors() {
@@ -917,6 +902,11 @@
         return status === normalizeText(firstStatus) || status.includes('AÇIK') || status.includes('YENİ');
     }
 
+    function isClosedServiceRecord(s) {
+        const status = normalizeText(s.status || '');
+        return status.includes('SONLANDIR') || status.includes('KAPANDI') || status.includes('KAPALI') || status.includes('TAMAMLANDI') || status.includes('BİTTİ') || status.includes('BITTI') || status.includes('İPTAL') || status.includes('IPTAL');
+    }
+
     function renderDashboardNewServices() {
         const tbody = document.getElementById('dashboardNewServicesBody');
         const empty = document.getElementById('dashboardEmptyNewServices');
@@ -982,6 +972,12 @@
 
     function showAllServices() {
         activeServiceTab = 'all';
+        clearFilters(false);
+        filterServisler();
+    }
+
+    function showDayEndServices() {
+        activeServiceTab = 'dayEnd';
         clearFilters(false);
         filterServisler();
     }
@@ -1838,6 +1834,7 @@
             if(source) match = match && normalizeText(s.source || 'Saha').includes(source);
             if(technicianFilter) match = match && normalizeText(s.technician || s.teknisyen || '').includes(technicianFilter);
             if(activeServiceTab === 'today') match = match && getServicePlanDateKey(s) === getLocalDateKey(0);
+            if(activeServiceTab === 'dayEnd') match = match && getServicePlanDateKey(s) === getLocalDateKey(0) && !isClosedServiceRecord(s);
             if(activeServiceTab === 'new') match = match && isNewServiceRecord(s);
             if(activeServiceTab === 'future') match = match && getServicePlanDateKey(s) > getLocalDateKey(0);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
