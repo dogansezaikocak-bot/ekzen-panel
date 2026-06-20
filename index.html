@@ -419,11 +419,28 @@
         </div>
 
         <div id="kasa" class="content-area">
-            <div class="filter-section">
+            <div class="filter-section" style="gap:8px;">
                 <button class="btn btn-blue" onclick="addKasaHareketiPrompt()">➕ Yeni Hareket Ekle</button>
+                <input type="date" id="kasaDateStart" onchange="filterKasa()" title="Başlangıç tarihi">
+                <input type="date" id="kasaDateEnd" onchange="filterKasa()" title="Bitiş tarihi">
+                <select id="kasaSourceFilter" onchange="filterKasa()">
+                    <option value="">Tüm Servis Kaynakları</option>
+                </select>
+                <select id="kasaDirectionFilter" onchange="filterKasa()">
+                    <option value="">Giren + Çıkan</option>
+                    <option value="giren">Sadece Giren</option>
+                    <option value="cikan">Sadece Çıkan</option>
+                </select>
+                <button class="btn btn-gray" onclick="clearKasaFilters()">Filtreyi Temizle</button>
                 <div style="font-weight: bold; margin-left: auto; font-size: 15px;">
                     Kasa Kalan Tutar: <span id="kasaKalanTutar" style="color:var(--success-green)">0,00 TL</span>
                 </div>
+            </div>
+            <div class="filter-section" style="font-size:13px; gap:18px;">
+                <strong>Filtre Sonucu:</strong>
+                <span>Giren: <strong id="kasaFilteredGiren" class="text-green">0 ₺</strong></span>
+                <span>Çıkan: <strong id="kasaFilteredCikan" class="text-red">0 ₺</strong></span>
+                <span>Net: <strong id="kasaFilteredNet">0 ₺</strong></span>
             </div>
             <div class="table-container">
                 <table>
@@ -431,6 +448,7 @@
                         <tr>
                             <th>Tarih</th>
                             <th>Ödeme Türü</th>
+                            <th>Servis Kaynağı</th>
                             <th>Açıklama</th>
                             <th>Tutar</th>
                             <th>İşlem</th>
@@ -787,6 +805,7 @@
         const filterTechSel = document.getElementById('filterTechnician');
         const newTechSel = document.getElementById('newTechnician');
         const assignTechSel = document.getElementById('assignTechnicianSelect');
+        const kasaSourceSel = document.getElementById('kasaSourceFilter');
 
         const oldFilterVal = filterSel ? filterSel.value : '';
         const oldSourceFilterVal = filterSourceSel ? filterSourceSel.value : '';
@@ -794,6 +813,7 @@
         const oldTechFilterVal = filterTechSel ? filterTechSel.value : '';
         const oldNewTechVal = newTechSel ? newTechSel.value : '';
         const oldAssignTechVal = assignTechSel ? assignTechSel.value : '';
+        const oldKasaSourceVal = kasaSourceSel ? kasaSourceSel.value : '';
         
         if(filterSel) filterSel.innerHTML = '<option value="">Servis Durumu</option>';
         if(modalSel) modalSel.innerHTML = '<option value="">Seçiniz</option>';
@@ -805,12 +825,15 @@
 
         if(filterSourceSel) filterSourceSel.innerHTML = '<option value="">Servis Kaynağı</option>';
         if(newSourceSel) newSourceSel.innerHTML = '<option value="">Servis Kaynağı Seçiniz</option>';
+        if(kasaSourceSel) kasaSourceSel.innerHTML = '<option value="">Tüm Servis Kaynakları</option><option value="Genel">Genel / Servissiz Hareket</option>';
         db.kaynaklar.forEach(k => {
             if(filterSourceSel) filterSourceSel.innerHTML += `<option value="${k}">${k}</option>`;
             if(newSourceSel) newSourceSel.innerHTML += `<option value="${k}">${k}</option>`;
+            if(kasaSourceSel) kasaSourceSel.innerHTML += `<option value="${k}">${k}</option>`;
         });
         if(filterSourceSel) filterSourceSel.value = oldSourceFilterVal;
         if(newSourceSel) newSourceSel.value = oldNewSourceVal || (db.kaynaklar[0] || '');
+        if(kasaSourceSel) kasaSourceSel.value = oldKasaSourceVal || '';
 
         if(filterTechSel) filterTechSel.innerHTML = '<option value="">Teknisyen</option>';
         if(newTechSel) newTechSel.innerHTML = '<option value="">Teknisyen Seçiniz</option>';
@@ -1211,7 +1234,8 @@
             desc: `${aciklama}: No #${s.id} - ${s.name}`,
             tutar: tutar,
             servisKey: activeServisKey,
-            odemeKey: odemeRef.key
+            odemeKey: odemeRef.key,
+            serviceSource: s.source || 'Saha'
         });
 
         closePaymentModal();
@@ -1314,22 +1338,95 @@
         }
     }
 
+    function getKasaDateKey(k) {
+        const raw = (k && k.date) ? String(k.date) : '';
+        if(!raw) return '';
+        if(raw.includes('T')) return raw.substring(0, 10);
+        const match = raw.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+        if(match) return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+        return raw.substring(0, 10);
+    }
+
+    function getKasaSource(k) {
+        if(k.serviceSource) return k.serviceSource;
+        if(k.source) return k.source;
+        if(k.servisKey) {
+            const servis = db.servisler.find(s => s._key === k.servisKey);
+            if(servis && servis.source) return servis.source;
+        }
+        return 'Genel';
+    }
+
+    function getFilteredKasaList() {
+        const start = document.getElementById('kasaDateStart') ? document.getElementById('kasaDateStart').value : '';
+        const end = document.getElementById('kasaDateEnd') ? document.getElementById('kasaDateEnd').value : '';
+        const source = document.getElementById('kasaSourceFilter') ? document.getElementById('kasaSourceFilter').value : '';
+        const direction = document.getElementById('kasaDirectionFilter') ? document.getElementById('kasaDirectionFilter').value : '';
+
+        return db.kasa.filter(k => {
+            const amount = parseInt(k.tutar || 0, 10);
+            const dateKey = getKasaDateKey(k);
+            const itemSource = getKasaSource(k);
+
+            if(start && (!dateKey || dateKey < start)) return false;
+            if(end && (!dateKey || dateKey > end)) return false;
+            if(source && itemSource !== source) return false;
+            if(direction === 'giren' && amount <= 0) return false;
+            if(direction === 'cikan' && amount >= 0) return false;
+            return true;
+        });
+    }
+
+    function updateKasaFilterTotals(list) {
+        const giren = list.reduce((sum, k) => sum + Math.max(parseInt(k.tutar || 0, 10), 0), 0);
+        const cikan = list.reduce((sum, k) => sum + Math.min(parseInt(k.tutar || 0, 10), 0), 0);
+        const net = giren + cikan;
+        const girenEl = document.getElementById('kasaFilteredGiren');
+        const cikanEl = document.getElementById('kasaFilteredCikan');
+        const netEl = document.getElementById('kasaFilteredNet');
+        if(girenEl) girenEl.innerText = giren.toLocaleString('tr-TR') + ' ₺';
+        if(cikanEl) cikanEl.innerText = cikan.toLocaleString('tr-TR') + ' ₺';
+        if(netEl) {
+            netEl.innerText = net.toLocaleString('tr-TR') + ' ₺';
+            netEl.className = net < 0 ? 'text-red' : 'text-green';
+        }
+    }
+
     function renderKasa() {
         const tbody = document.getElementById('kasaTableBody');
         tbody.innerHTML = '';
-        db.kasa.forEach((k, idx) => {
-            let tClass = k.tutar < 0 ? 'text-red' : 'text-green';
-            let tSign = k.tutar > 0 ? '+' : '';
+        const list = getFilteredKasaList();
+        updateKasaFilterTotals(list);
+
+        list.forEach((k) => {
+            const amount = parseInt(k.tutar || 0, 10);
+            let tClass = amount < 0 ? 'text-red' : 'text-green';
+            let tSign = amount > 0 ? '+' : '';
+            const source = getKasaSource(k);
             tbody.innerHTML += `
                 <tr>
-                    <td>${k.date}</td>
-                    <td>${k.type}</td>
-                    <td>${k.desc}</td>
-                    <td class="${tClass}">${tSign}${parseInt(k.tutar).toLocaleString('tr-TR')} ₺</td>
+                    <td>${k.date || ''}</td>
+                    <td>${k.type || 'Nakit'}</td>
+                    <td>${source}</td>
+                    <td>${k.desc || ''}</td>
+                    <td class="${tClass}">${tSign}${amount.toLocaleString('tr-TR')} ₺</td>
                     <td><button class="btn btn-danger btn-small" onclick="deleteKasaHareketi('${k._key}')">Sil</button></td>
                 </tr>
             `;
         });
+    }
+
+    function filterKasa() {
+        renderKasa();
+    }
+
+    function clearKasaFilters() {
+        const ids = ['kasaDateStart', 'kasaDateEnd', 'kasaSourceFilter', 'kasaDirectionFilter'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+        renderKasa();
     }
 
     function addKasaHareketiPrompt() {
@@ -1339,7 +1436,7 @@
         if(!tutar) return;
 
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
-        database.ref('ekzen_db/kasa').push({ date: timeStr, type: "Nakit", desc: desc, tutar: parseInt(tutar) });
+        database.ref('ekzen_db/kasa').push({ date: timeStr, type: "Nakit", source: "Genel", desc: desc, tutar: parseInt(tutar) });
     }
 
     function deleteKasaHareketi(key) {
