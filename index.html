@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V15 Mobil Durum ve Yeni Kayıt</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V16 Tarih ve Gün Sekmeleri</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -148,7 +148,7 @@
         .service-date { font-weight:800; color:#333; line-height:1.2; }
         .customer-name, .device-name { font-weight:800; color:#555; }
         .muted-line { color:#444; font-size:13px; margin-top:4px; }
-        .status-badge { background:#050505; border-radius:5px; padding:7px 10px; }
+        .status-badge { background:var(--main-blue); color:#fff; border-radius:5px; padding:7px 10px; }
         .postponed-badge { display:inline-block; background:#fff3cd; color:#8a5a00; border:1px solid #ffd36a; border-radius:4px; padding:4px 7px; font-size:11px; font-weight:700; margin-top:6px; }
         .pdf-pill { display:inline-block; background:#ddd; color:#555; border-radius:14px; padding:7px 10px; font-weight:700; cursor:pointer; text-align:center; font-size:12px; }
         .row-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -346,8 +346,6 @@
             .service-list-panel .status-badge { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; white-space: normal; }
             .complaint-line { margin-top: 9px; background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 8px 10px; color: #9a3412 !important; font-weight: 700; }
             .complaint-line::before { content: 'Şikayet: '; color: #92400e; }
-            .dashboard-services-panel .status-badge::before,
-            .service-list-panel .status-badge::before { content: 'Durum: '; margin-right: 4px; }
         }
     </style>
 
@@ -389,7 +387,6 @@
             <div class="dashboard-services-panel">
                 <div class="dashboard-services-header">
                     <h2>YENİ KAYIT OLAN SERVİSLER</h2>
-                    <button class="btn btn-blue" onclick="openNewServisModal()">➕ Yeni Servis Ekle</button>
                 </div>
                 <table class="service-table">
                     <thead>
@@ -413,7 +410,9 @@
                     <button class="service-tab primary" onclick="openNewServisModal()">✎ Yeni Servis Ekle</button>
                     <button class="service-tab" id="filterToggleButton" onclick="toggleFilterPanel()">🔍 Filtrele</button>
                     <button class="service-tab" id="todayServicesButton" onclick="showTodayServices()">➤ Bugün</button>
+                    <button class="service-tab" id="otherDaysButton" onclick="showOtherDaysServices()">📅 Diğer Günler</button>
                     <button class="service-tab" id="newServicesButton" onclick="showNewServices()">🆕 Yeni Kayıt</button>
+                    <button class="service-tab" id="allServicesButton" onclick="showAllServices()">📋 Tüm Servisler</button>
                 </div>
                 <div class="service-layout filter-closed" id="serviceLayout">
                     <aside class="service-filter-panel filter-closed" id="serviceFilterPanel">
@@ -550,7 +549,7 @@
             <div class="modal-body">
                 
                 <div style="display:flex; justify-content:space-between; background:#e3f2fd; padding:10px; border-radius:4px; font-size:12px; flex-wrap:wrap; gap:8px;">
-                    <div><strong>Kayıt Tarihi:</strong> <span id="mDate"></span> | <strong>Servis/Gidiş Tarihi:</strong> <span id="mServiceDate"></span> | <strong>Ertelenen Tarih:</strong> <span id="mPostponedDate"></span></div>
+                    <div><strong>Kayıt Tarihi:</strong> <span id="mDate"></span> | <strong>Servis/Gidiş Tarihi:</strong> <span id="mServiceDate"></span> | <strong>Ertelenen Tarih:</strong> <span id="mPostponedDate"></span> <button class="btn btn-blue btn-small" onclick="editServisTarihBilgisi()" style="margin-left:8px;">Tarih Düzenle</button></div>
                     <div><strong>Servis Kaynağı:</strong> <span id="mSource">Saha</span> | <strong>Teknisyen:</strong> <span id="mTechnician">Atanmadı</span> | <strong>Operatör:</strong> Doğan Sezai Koçak</div>
                 </div>
 
@@ -602,8 +601,8 @@
                                 <label>Seçilen Aşama</label>
                                 <input type="text" id="stageSelectedName" readonly>
                             </div>
-                            <div class="form-field" id="stagePostponedDateWrap" style="display:none;">
-                                <label>Ertelenen Tarih <span class="required-star">*</span></label>
+                            <div class="form-field" id="stagePostponedDateWrap" style="display:flex;">
+                                <label id="stageDateLabel">İşlem / Servis Tarihi</label>
                                 <input type="datetime-local" id="stagePostponedDate">
                             </div>
                             <div class="form-field full">
@@ -975,6 +974,18 @@
         filterServisler();
     }
 
+    function showOtherDaysServices() {
+        activeServiceTab = 'future';
+        clearFilters(false);
+        filterServisler();
+    }
+
+    function showAllServices() {
+        activeServiceTab = 'all';
+        clearFilters(false);
+        filterServisler();
+    }
+
     function renderServisler() {
         const tbody = document.getElementById('servisTableBody');
         tbody.innerHTML = '';
@@ -1080,6 +1091,32 @@
         database.ref(`ekzen_db/servisler/${activeServisKey}`).update(updates);
     }
 
+
+    function editServisTarihBilgisi() {
+        const s = db.servisler.find(item => item._key === activeServisKey);
+        if(!s) return;
+
+        let newServiceDate = prompt("Servis / Gidiş Tarihi (Örnek: 2026-06-20T18:30):", s.serviceDate || "");
+        if(newServiceDate === null) return;
+        let newPostponedDate = prompt("Ertelenen Tarih (Yoksa boş bırak):", s.postponedDate || "");
+        if(newPostponedDate === null) return;
+
+        let updates = {
+            serviceDate: newServiceDate.trim(),
+            postponedDate: newPostponedDate.trim()
+        };
+
+        let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
+        database.ref(`ekzen_db/servisler/${activeServisKey}`).update(updates);
+        database.ref(`ekzen_db/servisler/${activeServisKey}/islemler`).push({
+            time: timeStr,
+            text: `Sistem: Tarih bilgisi güncellendi | Servis/Gidiş: ${formatDateShort(updates.serviceDate) || 'Yok'} | Ertelenen: ${formatDateShort(updates.postponedDate) || 'Yok'}`
+        });
+
+        document.getElementById('mServiceDate').innerText = formatDateShort(updates.serviceDate) || 'Belirtilmedi';
+        document.getElementById('mPostponedDate').innerText = formatDateShort(updates.postponedDate) || 'Yok';
+    }
+
     function assignTeknisyen(val) {
         if(!activeServisKey || !val) return;
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
@@ -1164,6 +1201,7 @@
         const selectedName = document.getElementById('stageSelectedName');
         const postponedWrap = document.getElementById('stagePostponedDateWrap');
         const postponedInput = document.getElementById('stagePostponedDate');
+        const stageDateLabel = document.getElementById('stageDateLabel');
         const noteLabel = document.getElementById('stageNoteLabel');
         const noteText = document.getElementById('stageNoteText');
 
@@ -1173,7 +1211,9 @@
 
         const upper = normalizeStageName(val);
         const isPostponed = stageNeedsPostponedDate(val);
-        postponedWrap.style.display = isPostponed ? 'flex' : 'none';
+        postponedWrap.style.display = 'flex';
+        if(stageDateLabel) stageDateLabel.innerHTML = isPostponed ? 'Ertelenen Tarih <span class="required-star">*</span>' : 'İşlem / Servis Tarihi';
+        if(!isPostponed) postponedInput.value = (db.servisler.find(item => item._key === activeServisKey)?.serviceDate || '');
 
         if(isPostponed) {
             noteLabel.innerText = 'Erteleme Açıklaması / Neden';
@@ -1213,7 +1253,7 @@
 
         const val = document.getElementById('stageSelectedName').value;
         const note = document.getElementById('stageNoteText').value.trim();
-        const postponedDate = document.getElementById('stagePostponedDate').value;
+        const stageDate = document.getElementById('stagePostponedDate').value;
         const isPostponed = stageNeedsPostponedDate(val);
 
         if(!val) {
@@ -1221,7 +1261,7 @@
             return;
         }
 
-        if(isPostponed && !postponedDate) {
+        if(isPostponed && !stageDate) {
             alert('Ertelendi aşaması için ertelenen tarihi girmeniz gerekiyor.');
             document.getElementById('stagePostponedDate').focus();
             return;
@@ -1229,10 +1269,12 @@
 
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
         let updates = { status: val };
-        if(isPostponed) updates.postponedDate = postponedDate;
+        if(isPostponed) updates.postponedDate = stageDate;
+        else if(stageDate) updates.serviceDate = stageDate;
 
         let detailParts = [];
-        if(isPostponed) detailParts.push(`Ertelenen Tarih: ${formatDateShort(postponedDate)}`);
+        if(isPostponed) detailParts.push(`Ertelenen Tarih: ${formatDateShort(stageDate)}`);
+        else if(stageDate) detailParts.push(`Servis/Gidiş Tarihi: ${formatDateShort(stageDate)}`);
         if(note) detailParts.push(`Açıklama: ${note}`);
 
         let historyText = `Doğan Sezai Koçak : ${val}`;
@@ -1244,11 +1286,13 @@
             text: historyText,
             status: val,
             note: note || '',
-            postponedDate: isPostponed ? postponedDate : ''
+            postponedDate: isPostponed ? stageDate : '',
+            serviceDate: !isPostponed ? (stageDate || '') : ''
         });
 
         document.getElementById('mCurrentStatus').innerText = val;
-        if(isPostponed) document.getElementById('mPostponedDate').innerText = formatDateShort(postponedDate);
+        if(isPostponed) document.getElementById('mPostponedDate').innerText = formatDateShort(stageDate);
+        else if(stageDate) document.getElementById('mServiceDate').innerText = formatDateShort(stageDate);
         closeStageDetailForm();
     }
 
@@ -1707,8 +1751,6 @@
             .service-list-panel .status-badge { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; white-space: normal; }
             .complaint-line { margin-top: 9px; background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 8px 10px; color: #9a3412 !important; font-weight: 700; }
             .complaint-line::before { content: 'Şikayet: '; color: #92400e; }
-            .dashboard-services-panel .status-badge::before,
-            .service-list-panel .status-badge::before { content: 'Durum: '; margin-right: 4px; }
         }
     </style>
             </head>
@@ -1797,6 +1839,7 @@
             if(technicianFilter) match = match && normalizeText(s.technician || s.teknisyen || '').includes(technicianFilter);
             if(activeServiceTab === 'today') match = match && getServicePlanDateKey(s) === getLocalDateKey(0);
             if(activeServiceTab === 'new') match = match && isNewServiceRecord(s);
+            if(activeServiceTab === 'future') match = match && getServicePlanDateKey(s) > getLocalDateKey(0);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
             if(activeServiceTab === 'planlama') match = match && !!(s.serviceDate || s.postponedDate);
             if(activeServiceTab === 'atolye') match = match && normalizeText(s.status).includes('ATÖLYE');
