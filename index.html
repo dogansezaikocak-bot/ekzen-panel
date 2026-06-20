@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V7 Mobil</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V13 Mobil Toplu Liste</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -292,6 +292,56 @@
             .service-table td:not(:first-child) { grid-template-columns: 80px 1fr; }
             .row-actions, .quick-action-row { grid-template-columns: 1fr; }
             .nav-item { width: 48px; height: 48px; font-size: 20px; }
+        }
+
+
+        /* V13 - Mobilde toplu servis kartı: sadece isim / telefon / adres / şikayet */
+        @media (max-width: 768px) {
+            .mobile-open-link { cursor: pointer; }
+            .customer-address { color: var(--main-blue); font-weight: 700; background: #eef6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 8px 10px; margin-top: 7px; }
+            .customer-address::after { content: '  › Detay'; color: #64748b; font-size: 11px; font-weight: 800; }
+
+            .dashboard-services-panel { overflow: visible; padding: 10px; border-radius: 12px; }
+            .dashboard-services-panel .service-table,
+            .dashboard-services-panel .service-table tbody,
+            .dashboard-services-panel .service-table tr,
+            .dashboard-services-panel .service-table td,
+            .service-list-panel .service-table,
+            .service-list-panel .service-table tbody,
+            .service-list-panel .service-table tr,
+            .service-list-panel .service-table td { display: block; width: 100%; min-width: 0; }
+
+            .dashboard-services-panel .service-table thead,
+            .service-list-panel .service-table thead { display: none; }
+
+            .dashboard-services-panel .service-table tr,
+            .service-list-panel .service-table tr { background: #ffffff; border: 1px solid #d8dee9; border-radius: 14px; margin-bottom: 10px; padding: 12px; box-shadow: 0 2px 8px rgba(15,23,42,.08); }
+
+            .dashboard-services-panel .service-table td,
+            .service-list-panel .service-table td { border: 0; padding: 0; }
+
+            .dashboard-services-panel .service-table td::before,
+            .service-list-panel .service-table td::before { display: none !important; content: none !important; }
+
+            /* Ana sayfa mobil: tarih, durum ve işlem görünmesin */
+            .dashboard-services-panel .service-table td:nth-child(1),
+            .dashboard-services-panel .service-table td:nth-child(4),
+            .dashboard-services-panel .service-table td:nth-child(5) { display: none !important; }
+
+            /* Servisler mobil: seçim, tarih, durum ve işlem görünmesin */
+            .service-list-panel .service-table td:nth-child(1),
+            .service-list-panel .service-table td:nth-child(2),
+            .service-list-panel .service-table td:nth-child(5),
+            .service-list-panel .service-table td:nth-child(6) { display: none !important; }
+
+            /* Cihaz/model gizlensin; sadece şikayet görünsün */
+            .dashboard-services-panel .service-table td:nth-child(3) > div:not(.complaint-line),
+            .service-list-panel .service-table td:nth-child(4) > div:not(.complaint-line) { display: none !important; }
+
+            .customer-name { font-size: 16px; color: #0f172a; margin-bottom: 5px; }
+            .muted-line { font-size: 13px; line-height: 1.35; }
+            .complaint-line { margin-top: 9px; background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 8px 10px; color: #9a3412 !important; font-weight: 700; }
+            .complaint-line::before { content: 'Şikayet: '; color: #92400e; }
         }
     </style>
 
@@ -881,8 +931,8 @@
             tbody.innerHTML += `
                 <tr data-key="${s._key}">
                     <td><div class="service-no">#${s.id || ''}</div><div class="service-date">${mainDate}</div></td>
-                    <td><div class="customer-name">${s.name || ''}</div><div class="muted-line">${s.phone || ''}</div><div class="muted-line">${s.address || ''}</div></td>
-                    <td><div class="device-name">${s.cihaz || ''}</div><div class="muted-line"><em>${s.model || ''}</em></div><div class="muted-line" style="color:var(--danger-red);">${s.ariza || ''}</div></td>
+                    <td><div class="customer-name">${s.name || ''}</div><div class="muted-line">${s.phone || ''}</div><div class="muted-line customer-address mobile-open-link" onclick="openDetailModal('${s._key}')">${s.address || ''}</div></td>
+                    <td><div class="device-name">${s.cihaz || ''}</div><div class="muted-line"><em>${s.model || ''}</em></div><div class="muted-line complaint-line" style="color:var(--danger-red);">${s.ariza || ''}</div></td>
                     <td><span class="status-badge">${s.status || ''}</span><div class="muted-line"><strong>Teknisyen :</strong> ${technician}</div></td>
                     <td><div class="row-actions"><button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Aç / Düzenle</button>
                             <button class="btn btn-green btn-small" onclick="openRepeatServisByKey('${s._key}')">↻ Tekrar Aç</button><button class="btn btn-blue btn-small" onclick="callCustomerPhoneByKey('${s._key}')">📞 Ara</button><button class="btn btn-gray btn-small" onclick="printServisFisiByKey('${s._key}')">🖨️ Yazdır</button></div></td>
@@ -933,12 +983,12 @@
                     <td>
                         <div class="customer-name">${s.name || ''}</div>
                         <div class="muted-line">${s.phone || ''}</div>
-                        <div class="muted-line">${s.address || ''}</div>
+                        <div class="muted-line customer-address mobile-open-link" onclick="openDetailModal('${s._key}')">${s.address || ''}</div>
                     </td>
                     <td>
                         <div class="device-name">${s.cihaz || ''}</div>
                         <div class="muted-line"><em>${s.model || ''}</em></div>
-                        <div class="muted-line" style="color:var(--danger-red);">${s.ariza || ''}</div>
+                        <div class="muted-line complaint-line" style="color:var(--danger-red);">${s.ariza || ''}</div>
                     </td>
                     <td>
                         <span class="status-badge">${s.status || ''}</span>
