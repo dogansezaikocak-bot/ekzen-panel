@@ -93,6 +93,18 @@
         .text-green { color: var(--success-green); font-weight: bold; }
         .text-red { color: var(--danger-red); font-weight: bold; }
 
+
+
+        /* Yeni Servis Formu */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-field { display: flex; flex-direction: column; gap: 5px; }
+        .form-field.full { grid-column: 1 / -1; }
+        .form-field label { font-size: 12px; font-weight: 600; color: #555; }
+        .form-field input, .form-field select, .form-field textarea { padding: 9px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%; background: white; }
+        .form-field textarea { min-height: 80px; resize: vertical; }
+        .required-star { color: var(--danger-red); }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 10px; border-top: 1px solid #eee; margin-top: 5px; }
+
         /* MOBİL RESPONSIVE TASARIM KATMANI */
         @media (max-width: 768px) {
             body { flex-direction: column; height: auto; overflow: auto; }
@@ -118,6 +130,9 @@
             .info-row { flex-direction: column; margin-bottom: 8px; }
             .info-label { width: 100%; margin-bottom: 2px; color: #888; }
             .section-box select { width: 100%; margin-left: 0 !important; margin-top: 8px; display: block; padding: 6px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .form-actions { flex-direction: column; }
+            .form-actions .btn { width: 100%; justify-content: center; }
             .inner-row { flex-direction: column; align-items: flex-start; gap: 5px; }
             .modal-body div[style*="display:flex; justify-content:space-between;"] { flex-direction: column; gap: 5px; }
         }
@@ -274,6 +289,50 @@
                     <button class="btn btn-danger" onclick="deleteActiveServis()" style="width: 100%; justify-content: center;">⚠️ Bu Servis Kaydını Tamamen Sil</button>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="newServisModal">
+        <div class="modal-box" style="max-width: 750px;">
+            <div class="modal-header">
+                <span>Yeni Servis Kaydı</span>
+                <span class="modal-close" onclick="closeNewServisModal()">✕</span>
+            </div>
+            <div class="modal-body">
+                <div class="section-box">
+                    <div class="section-title">MÜŞTERİ VE CİHAZ BİLGİLERİ</div>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="newName">Müşteri Adı Soyadı <span class="required-star">*</span></label>
+                            <input type="text" id="newName" placeholder="Örn: Ahmet Yılmaz">
+                        </div>
+                        <div class="form-field">
+                            <label for="newPhone">Telefon</label>
+                            <input type="tel" id="newPhone" placeholder="Örn: 05xx xxx xx xx">
+                        </div>
+                        <div class="form-field full">
+                            <label for="newAddress">Açık Adres</label>
+                            <textarea id="newAddress" placeholder="Mahalle, cadde, sokak, bina, daire... "></textarea>
+                        </div>
+                        <div class="form-field">
+                            <label for="newCihaz">Cihaz / Marka</label>
+                            <input type="text" id="newCihaz" placeholder="Örn: Bosch Çamaşır Makinesi">
+                        </div>
+                        <div class="form-field">
+                            <label for="newModel">Cihaz Modeli</label>
+                            <input type="text" id="newModel" placeholder="Örn: WGA142X0TR">
+                        </div>
+                        <div class="form-field full">
+                            <label for="newAriza">Arıza Detayı</label>
+                            <textarea id="newAriza" placeholder="Müşterinin söylediği arıza / yapılacak işlem..."></textarea>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-danger" onclick="closeNewServisModal()">Vazgeç</button>
+                        <button class="btn btn-green" onclick="saveNewServisFromForm()">Kaydı Oluştur</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -570,23 +629,53 @@
     }
 
     function openNewServisModal() {
-        let name = prompt("Müşteri Adı Soyadı:"); if(!name) return;
-        let phone = prompt("Telefon Numarası:");
-        let address = prompt("Açık Adres:");
-        let cihaz = prompt("Cihaz / Marka:");
-        let ariza = prompt("Arıza Detayı:");
+        document.getElementById('newName').value = '';
+        document.getElementById('newPhone').value = '';
+        document.getElementById('newAddress').value = '';
+        document.getElementById('newCihaz').value = '';
+        document.getElementById('newModel').value = '';
+        document.getElementById('newAriza').value = '';
+        document.getElementById('newServisModal').style.display = 'flex';
+        setTimeout(() => document.getElementById('newName').focus(), 100);
+    }
+
+    function closeNewServisModal() {
+        document.getElementById('newServisModal').style.display = 'none';
+    }
+
+    function saveNewServisFromForm() {
+        let name = document.getElementById('newName').value.trim();
+        let phone = document.getElementById('newPhone').value.trim();
+        let address = document.getElementById('newAddress').value.trim();
+        let cihaz = document.getElementById('newCihaz').value.trim();
+        let model = document.getElementById('newModel').value.trim();
+        let ariza = document.getElementById('newAriza').value.trim();
+
+        if(!name) {
+            alert("Müşteri adı zorunludur.");
+            document.getElementById('newName').focus();
+            return;
+        }
 
         let idGen = Math.floor(100000 + Math.random() * 900000);
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
 
         let newServis = {
-            id: idGen, date: timeStr, name: name, phone: phone || "Bilinmiyor", address: address || "Girilmedi",
-            cihaz: cihaz || "Bilinmedi", model: "Standart", ariza: ariza || "Belirtilmedi",
+            id: idGen,
+            date: timeStr,
+            name: name,
+            phone: phone || "Bilinmiyor",
+            address: address || "Girilmedi",
+            cihaz: cihaz || "Bilinmedi",
+            model: model || "Model Girilmedi",
+            ariza: ariza || "Belirtilmedi",
             status: db.durumlar[0] || "Açık Talep"
         };
 
         const newRef = database.ref('ekzen_db/servisler').push(newServis);
         database.ref(`ekzen_db/servisler/${newRef.key}/islemler`).push({ time: timeStr, text: "Sistem: Yeni Servis Kaydı Açıldı" });
+        closeNewServisModal();
+        switchTab('servisler', document.querySelector('.nav-item[title="Servis Listesi"]'));
     }
 
     function filterServisler() {
