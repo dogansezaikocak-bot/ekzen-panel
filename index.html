@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V14 Bugün Servisleri</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V15 Mobil Durum ve Yeni Kayıt</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -323,15 +323,13 @@
             .dashboard-services-panel .service-table td::before,
             .service-list-panel .service-table td::before { display: none !important; content: none !important; }
 
-            /* Ana sayfa mobil: tarih, durum ve işlem görünmesin */
+            /* Ana sayfa mobil: tarih ve işlem görünmesin; durum görünsün */
             .dashboard-services-panel .service-table td:nth-child(1),
-            .dashboard-services-panel .service-table td:nth-child(4),
             .dashboard-services-panel .service-table td:nth-child(5) { display: none !important; }
 
-            /* Servisler mobil: seçim, tarih, durum ve işlem görünmesin */
+            /* Servisler mobil: seçim, tarih ve işlem görünmesin; durum görünsün */
             .service-list-panel .service-table td:nth-child(1),
             .service-list-panel .service-table td:nth-child(2),
-            .service-list-panel .service-table td:nth-child(5),
             .service-list-panel .service-table td:nth-child(6) { display: none !important; }
 
             /* Cihaz/model gizlensin; sadece şikayet görünsün */
@@ -340,8 +338,16 @@
 
             .customer-name { font-size: 16px; color: #0f172a; margin-bottom: 5px; }
             .muted-line { font-size: 13px; line-height: 1.35; }
+            .dashboard-services-panel .service-table td:nth-child(4),
+            .service-list-panel .service-table td:nth-child(5) { margin-top: 8px; }
+            .dashboard-services-panel .service-table td:nth-child(4) .muted-line,
+            .service-list-panel .service-table td:nth-child(5) .muted-line { display: none !important; }
+            .dashboard-services-panel .status-badge,
+            .service-list-panel .status-badge { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; white-space: normal; }
             .complaint-line { margin-top: 9px; background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 8px 10px; color: #9a3412 !important; font-weight: 700; }
             .complaint-line::before { content: 'Şikayet: '; color: #92400e; }
+            .dashboard-services-panel .status-badge::before,
+            .service-list-panel .status-badge::before { content: 'Durum: '; margin-right: 4px; }
         }
     </style>
 
@@ -407,11 +413,7 @@
                     <button class="service-tab primary" onclick="openNewServisModal()">✎ Yeni Servis Ekle</button>
                     <button class="service-tab" id="filterToggleButton" onclick="toggleFilterPanel()">🔍 Filtrele</button>
                     <button class="service-tab" id="todayServicesButton" onclick="showTodayServices()">➤ Bugün</button>
-                    <button class="service-tab" onclick="setServiceTab('teknisyen')">♙ Teknisyen Servisleri</button>
-                    <button class="service-tab" onclick="setServiceTab('operator')">👷 Operatör Servisleri</button>
-                    <button class="service-tab" onclick="setServiceTab('atolye')">⌂ Atölyedeki Cihazlar</button>
-                    <button class="service-tab" onclick="setServiceTab('planlama')">▦ Servis Planlama</button>
-                    <button class="service-tab" onclick="setServiceTab('istatistik')">◷ İstatistik</button>
+                    <button class="service-tab" id="newServicesButton" onclick="showNewServices()">🆕 Yeni Kayıt</button>
                 </div>
                 <div class="service-layout filter-closed" id="serviceLayout">
                     <aside class="service-filter-panel filter-closed" id="serviceFilterPanel">
@@ -963,6 +965,12 @@
 
     function showTodayServices() {
         activeServiceTab = 'today';
+        clearFilters(false);
+        filterServisler();
+    }
+
+    function showNewServices() {
+        activeServiceTab = 'new';
         clearFilters(false);
         filterServisler();
     }
@@ -1676,15 +1684,13 @@
             .dashboard-services-panel .service-table td::before,
             .service-list-panel .service-table td::before { display: none !important; content: none !important; }
 
-            /* Ana sayfa mobil: tarih, durum ve işlem görünmesin */
+            /* Ana sayfa mobil: tarih ve işlem görünmesin; durum görünsün */
             .dashboard-services-panel .service-table td:nth-child(1),
-            .dashboard-services-panel .service-table td:nth-child(4),
             .dashboard-services-panel .service-table td:nth-child(5) { display: none !important; }
 
-            /* Servisler mobil: seçim, tarih, durum ve işlem görünmesin */
+            /* Servisler mobil: seçim, tarih ve işlem görünmesin; durum görünsün */
             .service-list-panel .service-table td:nth-child(1),
             .service-list-panel .service-table td:nth-child(2),
-            .service-list-panel .service-table td:nth-child(5),
             .service-list-panel .service-table td:nth-child(6) { display: none !important; }
 
             /* Cihaz/model gizlensin; sadece şikayet görünsün */
@@ -1693,8 +1699,16 @@
 
             .customer-name { font-size: 16px; color: #0f172a; margin-bottom: 5px; }
             .muted-line { font-size: 13px; line-height: 1.35; }
+            .dashboard-services-panel .service-table td:nth-child(4),
+            .service-list-panel .service-table td:nth-child(5) { margin-top: 8px; }
+            .dashboard-services-panel .service-table td:nth-child(4) .muted-line,
+            .service-list-panel .service-table td:nth-child(5) .muted-line { display: none !important; }
+            .dashboard-services-panel .status-badge,
+            .service-list-panel .status-badge { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; white-space: normal; }
             .complaint-line { margin-top: 9px; background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 8px 10px; color: #9a3412 !important; font-weight: 700; }
             .complaint-line::before { content: 'Şikayet: '; color: #92400e; }
+            .dashboard-services-panel .status-badge::before,
+            .service-list-panel .status-badge::before { content: 'Durum: '; margin-right: 4px; }
         }
     </style>
             </head>
@@ -1782,6 +1796,7 @@
             if(source) match = match && normalizeText(s.source || 'Saha').includes(source);
             if(technicianFilter) match = match && normalizeText(s.technician || s.teknisyen || '').includes(technicianFilter);
             if(activeServiceTab === 'today') match = match && getServicePlanDateKey(s) === getLocalDateKey(0);
+            if(activeServiceTab === 'new') match = match && isNewServiceRecord(s);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
             if(activeServiceTab === 'planlama') match = match && !!(s.serviceDate || s.postponedDate);
             if(activeServiceTab === 'atolye') match = match && normalizeText(s.status).includes('ATÖLYE');
