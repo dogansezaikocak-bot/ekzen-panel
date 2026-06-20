@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V17 Ana Sayfa ve Gün Sonu</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V18 Gün Sonu Yeni Kayıt</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -1834,7 +1834,7 @@
             if(source) match = match && normalizeText(s.source || 'Saha').includes(source);
             if(technicianFilter) match = match && normalizeText(s.technician || s.teknisyen || '').includes(technicianFilter);
             if(activeServiceTab === 'today') match = match && getServicePlanDateKey(s) === getLocalDateKey(0);
-            if(activeServiceTab === 'dayEnd') match = match && getServicePlanDateKey(s) === getLocalDateKey(0) && !isClosedServiceRecord(s);
+            if(activeServiceTab === 'dayEnd') match = match && getServicePlanDateKey(s) === getLocalDateKey(0) && isNewServiceRecord(s);
             if(activeServiceTab === 'new') match = match && isNewServiceRecord(s);
             if(activeServiceTab === 'future') match = match && getServicePlanDateKey(s) > getLocalDateKey(0);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
