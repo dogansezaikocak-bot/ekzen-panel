@@ -73,6 +73,20 @@
         .setting-group h3 { font-size: 15px; margin-bottom: 15px; color: var(--main-blue); border-bottom: 1px solid #eee; padding-bottom: 8px; }
         .custom-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 8px; font-size: 13px; }
 
+
+        /* Form Alanları */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-field { display: flex; flex-direction: column; gap: 5px; }
+        .form-field.full { grid-column: 1 / -1; }
+        .form-field label { font-size: 12px; font-weight: 600; color: #555; }
+        .form-field input, .form-field select, .form-field textarea { padding: 9px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%; background: white; }
+        .form-field textarea { min-height: 80px; resize: vertical; }
+        .required-star { color: var(--danger-red); font-weight: bold; }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 10px; border-top: 1px solid #eee; margin-top: 5px; }
+        .quick-action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .btn-whatsapp { background-color: #25D366; color: white; }
+        .btn-gray { background-color: #64748b; color: white; }
+
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 999; }
         .modal-box { width: 90%; max-width: 950px; background: white; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
@@ -92,18 +106,6 @@
         .inner-row { background: #f8f9fa; padding: 8px; border-radius: 4px; margin-bottom: 5px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--main-blue); }
         .text-green { color: var(--success-green); font-weight: bold; }
         .text-red { color: var(--danger-red); font-weight: bold; }
-
-
-
-        /* Yeni Servis Formu */
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .form-field { display: flex; flex-direction: column; gap: 5px; }
-        .form-field.full { grid-column: 1 / -1; }
-        .form-field label { font-size: 12px; font-weight: 600; color: #555; }
-        .form-field input, .form-field select, .form-field textarea { padding: 9px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%; background: white; }
-        .form-field textarea { min-height: 80px; resize: vertical; }
-        .required-star { color: var(--danger-red); }
-        .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 10px; border-top: 1px solid #eee; margin-top: 5px; }
 
         /* MOBİL RESPONSIVE TASARIM KATMANI */
         @media (max-width: 768px) {
@@ -130,11 +132,13 @@
             .info-row { flex-direction: column; margin-bottom: 8px; }
             .info-label { width: 100%; margin-bottom: 2px; color: #888; }
             .section-box select { width: 100%; margin-left: 0 !important; margin-top: 8px; display: block; padding: 6px; }
+            .inner-row { flex-direction: column; align-items: flex-start; gap: 5px; }
+            .modal-body div[style*="display:flex; justify-content:space-between;"] { flex-direction: column; gap: 5px; }
+
             .form-grid { grid-template-columns: 1fr; }
             .form-actions { flex-direction: column; }
             .form-actions .btn { width: 100%; justify-content: center; }
-            .inner-row { flex-direction: column; align-items: flex-start; gap: 5px; }
-            .modal-body div[style*="display:flex; justify-content:space-between;"] { flex-direction: column; gap: 5px; }
+            .quick-action-row .btn { flex: 1; justify-content: center; }
         }
     </style>
 
@@ -262,6 +266,15 @@
                     </div>
                 </div>
 
+                <div class="section-box">
+                    <div class="section-title">HIZLI İŞLEMLER</div>
+                    <div class="quick-action-row">
+                        <button class="btn btn-whatsapp" onclick="openCustomerWhatsApp()">💬 WhatsApp</button>
+                        <button class="btn btn-blue" onclick="callCustomerPhone()">📞 Ara</button>
+                        <button class="btn btn-gray" onclick="printServisFisi()">🖨️ Servis Fişi Yazdır</button>
+                    </div>
+                </div>
+
                 <div class="section-box" style="background:#fffde7; border-color:#fff59d;">
                     <span style="font-weight:bold; font-size:13px;">Servis Durumu: </span>
                     <span id="mCurrentStatus" class="status-badge"></span>
@@ -276,7 +289,7 @@
                 </div>
 
                 <div class="section-box">
-                    <div class="section-title">PARA HAREKETLERİ <button class="btn btn-green btn-small" onclick="promptÖdemeEkle()">Ödeme Ekle</button></div>
+                    <div class="section-title">PARA HAREKETLERİ <button class="btn btn-green btn-small" onclick="openPaymentModal()">Ödeme Ekle</button></div>
                     <div id="paraHistoryContainer"></div>
                 </div>
 
@@ -292,6 +305,7 @@
             </div>
         </div>
     </div>
+
 
     <div class="modal-overlay" id="newServisModal">
         <div class="modal-box" style="max-width: 750px;">
@@ -313,7 +327,7 @@
                         </div>
                         <div class="form-field full">
                             <label for="newAddress">Açık Adres</label>
-                            <textarea id="newAddress" placeholder="Mahalle, cadde, sokak, bina, daire... "></textarea>
+                            <textarea id="newAddress" placeholder="Mahalle, cadde, sokak, bina, daire..."></textarea>
                         </div>
                         <div class="form-field">
                             <label for="newCihaz">Cihaz / Marka</label>
@@ -331,6 +345,42 @@
                     <div class="form-actions">
                         <button class="btn btn-danger" onclick="closeNewServisModal()">Vazgeç</button>
                         <button class="btn btn-green" onclick="saveNewServisFromForm()">Kaydı Oluştur</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-box" style="max-width: 520px;">
+            <div class="modal-header">
+                <span>Ödeme Ekle</span>
+                <span class="modal-close" onclick="closePaymentModal()">✕</span>
+            </div>
+            <div class="modal-body">
+                <div class="section-box">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="payAmount">Alınan Tutar (TL) <span class="required-star">*</span></label>
+                            <input type="number" id="payAmount" min="0" step="1" placeholder="Örn: 750">
+                        </div>
+                        <div class="form-field">
+                            <label for="payType">Ödeme Türü</label>
+                            <select id="payType">
+                                <option value="Nakit">Nakit</option>
+                                <option value="IBAN / Havale">IBAN / Havale</option>
+                                <option value="Kredi Kartı">Kredi Kartı</option>
+                                <option value="Veresiye">Veresiye</option>
+                            </select>
+                        </div>
+                        <div class="form-field full">
+                            <label for="payNote">Açıklama</label>
+                            <input type="text" id="payNote" placeholder="Örn: Kapora, tam ödeme, parça ücreti...">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-danger" onclick="closePaymentModal()">Vazgeç</button>
+                        <button class="btn btn-green" onclick="savePaymentFromForm()">Ödemeyi Kaydet</button>
                     </div>
                 </div>
             </div>
@@ -532,6 +582,13 @@
 
     function deleteHistoryItem(childNode, itemKey) {
         if(!confirm("Bu satırı silmek istediğinize emin misiniz?")) return;
+        const s = db.servisler.find(item => item._key === activeServisKey);
+        const item = s && s[childNode] ? s[childNode][itemKey] : null;
+
+        if(childNode === 'odemeler' && item && item.kasaKey) {
+            database.ref(`ekzen_db/kasa/${item.kasaKey}`).remove();
+        }
+
         database.ref(`ekzen_db/servisler/${activeServisKey}/${childNode}/${itemKey}`).remove();
     }
 
@@ -545,15 +602,59 @@
         document.getElementById('mCurrentStatus').innerText = val;
     }
 
-    function promptÖdemeEkle() {
-        let tutar = prompt("Alınan Ödeme Tutarını Girin (TL):");
-        if(!tutar) return;
+    function openPaymentModal() {
+        if(!activeServisKey) return;
+        document.getElementById('payAmount').value = '';
+        document.getElementById('payType').value = 'Nakit';
+        document.getElementById('payNote').value = '';
+        document.getElementById('paymentModal').style.display = 'flex';
+        setTimeout(() => document.getElementById('payAmount').focus(), 100);
+    }
+
+    function closePaymentModal() {
+        document.getElementById('paymentModal').style.display = 'none';
+    }
+
+    function savePaymentFromForm() {
+        let tutar = parseInt(document.getElementById('payAmount').value, 10);
+        let type = document.getElementById('payType').value;
+        let note = document.getElementById('payNote').value.trim();
+
+        if(!tutar || tutar <= 0) {
+            alert("Lütfen geçerli bir ödeme tutarı girin.");
+            document.getElementById('payAmount').focus();
+            return;
+        }
+
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
         const s = db.servisler.find(item => item._key === activeServisKey);
-        
-        database.ref(`ekzen_db/servisler/${activeServisKey}/odemeler`).push({ time: timeStr, text: "Doğan Sezai KOÇAK", type: "Nakit", tutar: parseInt(tutar) });
-        database.ref('ekzen_db/kasa').push({ date: timeStr, type: "Nakit", desc: `Servis Ödemesi: No #${s.id} - ${s.name}`, tutar: parseInt(tutar) });
+        if(!s) return;
+
+        const odemeRef = database.ref(`ekzen_db/servisler/${activeServisKey}/odemeler`).push();
+        const kasaRef = database.ref('ekzen_db/kasa').push();
+        const aciklama = note || "Servis Ödemesi";
+
+        odemeRef.set({
+            time: timeStr,
+            text: aciklama,
+            type: type,
+            tutar: tutar,
+            kasaKey: kasaRef.key
+        });
+
+        kasaRef.set({
+            date: timeStr,
+            type: type,
+            desc: `${aciklama}: No #${s.id} - ${s.name}`,
+            tutar: tutar,
+            servisKey: activeServisKey,
+            odemeKey: odemeRef.key
+        });
+
+        closePaymentModal();
     }
+
+    function promptÖdemeEkle() { openPaymentModal(); }
 
     function promptNotEkle() {
         let notText = prompt("Servis Notu Yazın:");
@@ -624,6 +725,10 @@
 
     function deleteKasaHareketi(key) {
         if(confirm("Bu kasa hareketini tamamen silmek istediğinize emin misiniz?")) {
+            const k = db.kasa.find(item => item._key === key);
+            if(k && k.servisKey && k.odemeKey) {
+                database.ref(`ekzen_db/servisler/${k.servisKey}/odemeler/${k.odemeKey}`).remove();
+            }
             database.ref(`ekzen_db/kasa/${key}`).remove();
         }
     }
@@ -676,6 +781,94 @@
         database.ref(`ekzen_db/servisler/${newRef.key}/islemler`).push({ time: timeStr, text: "Sistem: Yeni Servis Kaydı Açıldı" });
         closeNewServisModal();
         switchTab('servisler', document.querySelector('.nav-item[title="Servis Listesi"]'));
+    }
+
+    function normalizePhoneForLink(phone) {
+        let cleaned = (phone || '').replace(/\D/g, '');
+        if(cleaned.startsWith('90')) return cleaned;
+        if(cleaned.startsWith('0')) return '9' + cleaned;
+        if(cleaned.length === 10) return '90' + cleaned;
+        return cleaned;
+    }
+
+    function openCustomerWhatsApp() {
+        const s = db.servisler.find(item => item._key === activeServisKey);
+        if(!s || !s.phone || s.phone === "Bilinmiyor") { alert("Bu kayıtta telefon numarası yok."); return; }
+        const phone = normalizePhoneForLink(s.phone);
+        const msg = encodeURIComponent(`Merhaba ${s.name}, Ekzen Teknik servis kaydınız hakkında yazıyorum. Servis No: #${s.id}`);
+        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    }
+
+    function callCustomerPhone() {
+        const s = db.servisler.find(item => item._key === activeServisKey);
+        if(!s || !s.phone || s.phone === "Bilinmiyor") { alert("Bu kayıtta telefon numarası yok."); return; }
+        window.location.href = `tel:${s.phone}`;
+    }
+
+    function printServisFisi() {
+        const s = db.servisler.find(item => item._key === activeServisKey);
+        if(!s) return;
+
+        const islemler = s.islemler ? Object.keys(s.islemler).map(k => `<li>${s.islemler[k].time || ''} - ${s.islemler[k].text || ''}</li>`).join('') : '<li>İşlem kaydı yok</li>';
+        const notlar = s.notlar ? Object.keys(s.notlar).map(k => `<li>${s.notlar[k].time || ''} - ${s.notlar[k].text || ''}</li>`).join('') : '<li>Not yok</li>';
+        const odemeler = s.odemeler ? Object.keys(s.odemeler).map(k => `<li>${s.odemeler[k].time || ''} - ${s.odemeler[k].text || 'Ödeme'} / ${s.odemeler[k].type || 'Nakit'}: ${parseInt(s.odemeler[k].tutar || 0).toLocaleString('tr-TR')} TL</li>`).join('') : '<li>Ödeme yok</li>';
+        const toplamOdeme = s.odemeler ? Object.keys(s.odemeler).reduce((sum, k) => sum + parseInt(s.odemeler[k].tutar || 0), 0) : 0;
+
+        const html = `
+            <!DOCTYPE html>
+            <html lang="tr">
+            <head>
+                <meta charset="UTF-8">
+                <title>Servis Fişi #${s.id}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; color:#222; padding: 24px; }
+                    .header { border-bottom: 2px solid #0066b2; padding-bottom: 12px; margin-bottom: 18px; display:flex; justify-content:space-between; }
+                    h1 { margin:0; color:#0066b2; font-size:24px; }
+                    h2 { font-size:16px; border-bottom:1px solid #ddd; padding-bottom:6px; margin-top:18px; }
+                    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+                    .box { border:1px solid #ddd; padding:12px; border-radius:6px; }
+                    .row { margin:6px 0; }
+                    .label { font-weight:bold; display:inline-block; width:110px; }
+                    ul { margin:8px 0 0 18px; padding:0; }
+                    .total { font-size:18px; font-weight:bold; color:#2e7d32; }
+                    .signature { display:flex; justify-content:space-between; margin-top:50px; }
+                    .sigbox { width:220px; border-top:1px solid #333; text-align:center; padding-top:8px; }
+                    @media print { button { display:none; } body { padding:0; } }
+                </style>
+            </head>
+            <body>
+                <button onclick="window.print()" style="padding:8px 14px; margin-bottom:16px;">Yazdır</button>
+                <div class="header">
+                    <div><h1>Ekzen Teknik</h1><div>Servis Takip Fişi</div></div>
+                    <div><strong>Servis No:</strong> #${s.id}<br><strong>Tarih:</strong> ${s.date || ''}<br><strong>Durum:</strong> ${s.status || ''}</div>
+                </div>
+                <div class="grid">
+                    <div class="box">
+                        <h2>Müşteri Bilgisi</h2>
+                        <div class="row"><span class="label">Ad Soyad:</span> ${s.name || ''}</div>
+                        <div class="row"><span class="label">Telefon:</span> ${s.phone || ''}</div>
+                        <div class="row"><span class="label">Adres:</span> ${s.address || ''}</div>
+                    </div>
+                    <div class="box">
+                        <h2>Cihaz Bilgisi</h2>
+                        <div class="row"><span class="label">Cihaz:</span> ${s.cihaz || ''}</div>
+                        <div class="row"><span class="label">Model:</span> ${s.model || ''}</div>
+                        <div class="row"><span class="label">Arıza:</span> ${s.ariza || ''}</div>
+                    </div>
+                </div>
+                <div class="box"><h2>Yapılan İşlemler</h2><ul>${islemler}</ul></div>
+                <div class="box"><h2>Ödemeler</h2><ul>${odemeler}</ul><p class="total">Toplam Alınan: ${toplamOdeme.toLocaleString('tr-TR')} TL</p></div>
+                <div class="box"><h2>Servis Notları</h2><ul>${notlar}</ul></div>
+                <div class="signature"><div class="sigbox">Teknisyen İmza</div><div class="sigbox">Müşteri İmza</div></div>
+                <script>setTimeout(() => window.print(), 500);<\/script>
+            </body>
+            </html>`;
+
+        const printWindow = window.open('', '_blank');
+        if(!printWindow) { alert("Yazdırma penceresi açılamadı. Tarayıcı açılır pencereyi engellemiş olabilir."); return; }
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
     }
 
     function filterServisler() {
