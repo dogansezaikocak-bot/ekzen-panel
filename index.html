@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Gelişmiş Servis Yönetim Paneli V3 (Çevrimiçi)</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V5</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -107,6 +107,46 @@
         .text-green { color: var(--success-green); font-weight: bold; }
         .text-red { color: var(--danger-red); font-weight: bold; }
 
+
+
+        /* V5 Referans Panel Görünümü */
+        .navbar { height: 64px; background: linear-gradient(90deg, #0875bd, #0066b2); }
+        .navbar-brand { font-size: 22px; }
+        .user-profile strong { display:block; font-size:13px; }
+        .user-profile small { display:block; opacity:.9; font-style:italic; }
+        .sidebar { width: 72px; background:#f8fafc; box-shadow: 2px 0 8px rgba(0,0,0,.05); }
+        .nav-item { background:#fff; color:#0f172a; border:1px solid #dbe3ef; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+        .content-area { padding: 12px; }
+        .service-shell { background:#fff; border:1px solid #d8dee9; border-radius:8px; box-shadow:0 2px 10px rgba(15,23,42,.10); overflow:hidden; }
+        .service-tabs { display:flex; gap:0; align-items:center; padding:7px 8px; border-bottom:1px solid #d8dee9; background:#fff; overflow-x:auto; }
+        .service-tab { border:0; border-right:1px solid #d8dee9; background:#fff; padding:10px 14px; font-weight:700; color:#4a4a4a; cursor:pointer; white-space:nowrap; }
+        .service-tab.primary { background:var(--main-blue); color:#fff; border-radius:4px; margin-right:8px; border-right:0; }
+        .service-tab:hover { background:#eef6ff; }
+        .service-tab.primary:hover { background:var(--dark-blue); }
+        .service-layout { display:grid; grid-template-columns: 230px 1fr; min-height: calc(100vh - 150px); }
+        .service-filter-panel { background:#f8fafc; border-right:1px solid #d8dee9; padding:12px; }
+        .service-filter-panel h3 { font-size:17px; color:#555; padding-bottom:8px; margin-bottom:10px; border-bottom:1px solid #cbd5e1; }
+        .service-filter-panel input, .service-filter-panel select { width:100%; padding:9px; margin-bottom:8px; border:1px solid #cfd6df; border-radius:4px; font-size:14px; background:#fff; }
+        .date-pair { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+        .quick-dates { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:6px 0 12px; }
+        .quick-dates button { border:0; background:transparent; color:red; text-align:left; cursor:pointer; padding:4px 0; }
+        .service-list-panel { padding:16px; overflow-x:auto; }
+        .service-title-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+        .service-title-row h2 { font-size:20px; color:#555; }
+        .service-table { width:100%; min-width:900px; border-collapse:separate; border-spacing:0; }
+        .service-table th { background:#fff; border-bottom:1px solid #cfd6df; border-right:1px solid #94a3b8; font-size:16px; font-weight:500; padding:10px 12px; }
+        .service-table td { border-bottom:1px solid #d8dee9; padding:14px 12px; vertical-align:middle; }
+        .service-no { color:#555; font-size:12px; font-weight:700; }
+        .service-date { font-weight:800; color:#333; line-height:1.2; }
+        .customer-name, .device-name { font-weight:800; color:#555; }
+        .muted-line { color:#444; font-size:13px; margin-top:4px; }
+        .status-badge { background:#050505; border-radius:5px; padding:7px 10px; }
+        .postponed-badge { display:inline-block; background:#fff3cd; color:#8a5a00; border:1px solid #ffd36a; border-radius:4px; padding:4px 7px; font-size:11px; font-weight:700; margin-top:6px; }
+        .pdf-pill { display:inline-block; background:#ddd; color:#555; border-radius:14px; padding:7px 10px; font-weight:700; cursor:pointer; text-align:center; font-size:12px; }
+        .row-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        .result-count { color:red; font-weight:800; margin-top:14px; font-size:14px; }
+        .postponed-field { border-left:4px solid #f59e0b; padding-left:10px; }
+
         /* MOBİL RESPONSIVE TASARIM KATMANI */
         @media (max-width: 768px) {
             body { flex-direction: column; height: auto; overflow: auto; }
@@ -126,6 +166,9 @@
             .stat-card .value { font-size: 28px; }
             .filter-section { flex-direction: column; align-items: stretch; padding: 10px; }
             .filter-section input, .filter-section select, .filter-section .btn { width: 100%; text-align: center; justify-content: center; }
+            .service-layout { grid-template-columns:1fr; }
+            .service-filter-panel { border-right:0; border-bottom:1px solid #d8dee9; }
+            .service-tabs { padding-bottom:10px; }
             .info-grid { grid-template-columns: 1fr; gap: 12px; }
             .modal-box { width: 95%; max-height: 85vh; margin: 20px auto; }
             .modal-body { padding: 12px; gap: 12px; }
@@ -157,8 +200,8 @@
 
     <div class="main-wrapper">
         <div class="navbar">
-            <div class="navbar-brand">⚙️ Ekzen Teknik Yönetim Paneli</div>
-            <div class="user-profile">👤 Doğan Sezai Koçak (Patron) | <span style="cursor:pointer;" onclick="alert('Çıkış yapıldı')">🚪 Çıkış</span></div>
+            <div class="navbar-brand">☰ &nbsp; Ekzen Teknik</div>
+            <div class="user-profile">👤 <span><strong>Doğan Sezai Koçak</strong><small>Patron</small></span> | <span style="cursor:pointer;" onclick="alert('Çıkış yapıldı')">⏻ Çıkış</span></div>
         </div>
 
         <div id="dashboard" class="content-area active">
@@ -179,27 +222,67 @@
         </div>
 
         <div id="servisler" class="content-area">
-            <div class="filter-section">
-                <button class="btn btn-blue" onclick="openNewServisModal()">➕ Yeni Servis Ekle</button>
-                <input type="text" id="searchKeyword" onkeyup="filterServisler()" placeholder="Müşteri Adı / Telefon / Bölge...">
-                <select id="filterStatus" onchange="filterServisler()">
-                    <option value="">Tüm Durumlar</option>
-                </select>
-            </div>
-
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Servis No / Tarih</th>
-                            <th>Müşteri Bilgisi</th>
-                            <th>Cihaz Bilgisi</th>
-                            <th>Durum</th>
-                            <th>İşlem</th>
-                        </tr>
-                    </thead>
-                    <tbody id="servisTableBody"></tbody>
-                </table>
+            <div class="service-shell">
+                <div class="service-tabs">
+                    <button class="service-tab primary" onclick="openNewServisModal()">✎ Yeni Servis Ekle</button>
+                    <button class="service-tab" onclick="setServiceTab('all')">➤ Tüm Servisler</button>
+                    <button class="service-tab" onclick="setServiceTab('teknisyen')">♙ Teknisyen Servisleri</button>
+                    <button class="service-tab" onclick="setServiceTab('operator')">👷 Operatör Servisleri</button>
+                    <button class="service-tab" onclick="setServiceTab('atolye')">⌂ Atölyedeki Cihazlar</button>
+                    <button class="service-tab" onclick="setServiceTab('planlama')">▦ Servis Planlama</button>
+                    <button class="service-tab" onclick="setServiceTab('istatistik')">◷ İstatistik</button>
+                </div>
+                <div class="service-layout">
+                    <aside class="service-filter-panel">
+                        <h3>Servis Arama</h3>
+                        <input type="text" id="searchKeyword" onkeyup="filterServisler()" placeholder="Müşteri Adı / Servis No">
+                        <input type="text" id="searchPhone" onkeyup="filterServisler()" placeholder="Telefon Numarası">
+                        <select id="filterBrand" onchange="filterServisler()">
+                            <option value="">Marka</option>
+                            <option>Bosch</option><option>Siemens</option><option>Profilo</option><option>Arçelik</option><option>Beko</option><option>Demirdöküm</option><option>Vaillant</option>
+                        </select>
+                        <select id="filterDevice" onchange="filterServisler()">
+                            <option value="">Cihaz Türü</option>
+                            <option>Çamaşır Makinesi</option><option>Bulaşık Makinesi</option><option>Buzdolabı</option><option>Kurutma Makinesi</option><option>Kombi</option><option>Klima</option><option>Süpürge</option><option>Kahve Makinesi</option>
+                        </select>
+                        <select id="filterStatus" onchange="filterServisler()"><option value="">Servis Durumu</option></select>
+                        <select id="filterSource" onchange="filterServisler()"><option value="">Servis Kaynağı</option><option>Saha</option><option>Telefon</option><option>WhatsApp</option><option>Web</option></select>
+                        <select id="filterCity" onchange="filterServisler()"><option value="">Tüm İller</option><option>Ankara</option></select>
+                        <select id="filterDistrict" onchange="filterServisler()"><option value="">Tüm İlçeler</option><option>Keçiören</option><option>Pursaklar</option><option>Mamak</option><option>Yenimahalle</option><option>Altındağ</option></select>
+                        <div class="date-pair">
+                            <input type="date" id="filterDateStart" onchange="filterServisler()">
+                            <input type="date" id="filterDateEnd" onchange="filterServisler()">
+                        </div>
+                        <div class="quick-dates">
+                            <button onclick="quickDateFilter('today')">Bugün</button>
+                            <button onclick="quickDateFilter('yesterday')">Dün</button>
+                            <button onclick="quickDateFilter('week')">Bu Hafta</button>
+                            <button onclick="clearFilters()">Temizle</button>
+                        </div>
+                        <button class="btn btn-gray" style="width:100%; justify-content:center;" onclick="filterServisler()">Ara</button>
+                    </aside>
+                    <main class="service-list-panel">
+                        <div class="service-title-row">
+                            <h2>SERVİS LİSTESİ</h2>
+                            <button class="btn btn-gray" onclick="sortServislerByDate()">☷ Sıralama</button>
+                        </div>
+                        <table class="service-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;"></th>
+                                    <th>Tarih</th>
+                                    <th>Müşteri</th>
+                                    <th>Cihaz</th>
+                                    <th>Durum</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servisTableBody"></tbody>
+                        </table>
+                        <div class="result-count">Toplam Sonuç Sayısı : <span id="servisResultCount">0</span></div>
+                        <div style="text-align:right; margin-top:18px;"><button class="btn btn-gray" onclick="printServisListesi()">Listeyi Yazdır</button></div>
+                    </main>
+                </div>
             </div>
         </div>
 
@@ -246,9 +329,9 @@
             </div>
             <div class="modal-body">
                 
-                <div style="display:flex; justify-content:space-between; background:#e3f2fd; padding:10px; border-radius:4px; font-size:12px;">
-                    <div><strong>Tarih:</strong> <span id="mDate"></span> | <strong>Servis Kaynağı:</strong> Saha</div>
-                    <div><strong>Operatör:</strong> Doğan Sezai Koçak</div>
+                <div style="display:flex; justify-content:space-between; background:#e3f2fd; padding:10px; border-radius:4px; font-size:12px; flex-wrap:wrap; gap:8px;">
+                    <div><strong>Kayıt Tarihi:</strong> <span id="mDate"></span> | <strong>Servis/Gidiş Tarihi:</strong> <span id="mServiceDate"></span> | <strong>Ertelenen Tarih:</strong> <span id="mPostponedDate"></span></div>
+                    <div><strong>Servis Kaynağı:</strong> <span id="mSource">Saha</span> | <strong>Operatör:</strong> Doğan Sezai Koçak</div>
                 </div>
 
                 <div class="info-grid">
@@ -325,6 +408,14 @@
                             <label for="newPhone">Telefon</label>
                             <input type="tel" id="newPhone" placeholder="Örn: 05xx xxx xx xx">
                         </div>
+                        <div class="form-field">
+                            <label for="newServiceDate">Servis / Gidiş Tarihi</label>
+                            <input type="datetime-local" id="newServiceDate">
+                        </div>
+                        <div class="form-field postponed-field">
+                            <label for="newPostponedDate">Ertelenen Servis Tarihi</label>
+                            <input type="datetime-local" id="newPostponedDate">
+                        </div>
                         <div class="form-field full">
                             <label for="newAddress">Açık Adres</label>
                             <textarea id="newAddress" placeholder="Mahalle, cadde, sokak, bina, daire..."></textarea>
@@ -340,6 +431,15 @@
                         <div class="form-field full">
                             <label for="newAriza">Arıza Detayı</label>
                             <textarea id="newAriza" placeholder="Müşterinin söylediği arıza / yapılacak işlem..."></textarea>
+                        </div>
+                        <div class="form-field">
+                            <label for="newSource">Servis Kaynağı</label>
+                            <select id="newSource">
+                                <option value="Saha">Saha</option>
+                                <option value="Telefon">Telefon</option>
+                                <option value="WhatsApp">WhatsApp</option>
+                                <option value="Web">Web</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-actions">
@@ -404,6 +504,8 @@
 
     let db = { servisler: [], kasa: [], durumlar: [] };
     let activeServisKey = null;
+    let activeServiceTab = "all";
+    let sortNewestFirst = true;
 
     // Firebase Canlı Veri Dinleme
     database.ref('ekzen_db').on('value', (snapshot) => {
@@ -411,7 +513,8 @@
         if (data) {
             db.servisler = data.servisler ? Object.keys(data.servisler).map(key => ({ _key: key, ...data.servisler[key] })) : [];
             db.kasa = data.kasa ? Object.keys(data.kasa).map(key => ({ _key: key, ...data.kasa[key] })) : [];
-            db.durumlar = data.durumlar || ["Açık Talep", "Teknisyen Yönlendirildi", "Servis Sonlandırıldı"];
+            db.durumlar = data.durumlar || ["Açık Talep", "Teknisyen Yönlendirildi", "Ertelendi", "Servis Sonlandırıldı"];
+            if(!db.durumlar.includes("Ertelendi")) db.durumlar.push("Ertelendi");
             
             updateDashboard();
             updateStatusSelectors();
@@ -458,7 +561,7 @@
         const modalSel = document.getElementById('actionSelect');
         const oldFilterVal = filterSel.value;
         
-        filterSel.innerHTML = '<option value="">Tüm Durumlar</option>';
+        filterSel.innerHTML = '<option value="">Servis Durumu</option>';
         modalSel.innerHTML = '<option value="">Seçiniz</option>';
         
         db.durumlar.forEach(d => {
@@ -469,22 +572,67 @@
         filterSel.value = oldFilterVal;
     }
 
+    function formatDateShort(value) {
+        if(!value) return '';
+        if(value.includes('T')) return new Date(value).toLocaleString('tr-TR').substring(0,16);
+        return value;
+    }
+
+    function getServisSortDate(s) {
+        const raw = s.serviceDate || s.postponedDate || s.date || '';
+        if(raw.includes('T')) return new Date(raw).getTime();
+        return 0;
+    }
+
+    function setServiceTab(tab) {
+        activeServiceTab = tab;
+        filterServisler();
+        if(tab !== 'all') alert('Bu sekme şu an filtre görünümü olarak eklendi. İstersen bir sonraki adımda işlevini ayrı ayrı kurarız.');
+    }
+
     function renderServisler() {
         const tbody = document.getElementById('servisTableBody');
         tbody.innerHTML = '';
-        db.servisler.forEach((s) => {
+
+        let list = [...db.servisler].sort((a,b) => sortNewestFirst ? getServisSortDate(b)-getServisSortDate(a) : getServisSortDate(a)-getServisSortDate(b));
+
+        list.forEach((s) => {
+            const mainDate = s.serviceDate ? formatDateShort(s.serviceDate) : (s.date || '');
+            const postponed = s.postponedDate ? `<div class="postponed-badge">Ertelendi: ${formatDateShort(s.postponedDate)}</div>` : '';
+            const source = s.source || 'Saha';
             tbody.innerHTML += `
-                <tr>
-                    <td><strong>#${s.id}</strong><br><span style="color:#666; font-size:11px;">${s.date}</span></td>
-                    <td><strong>${s.name}</strong><br>${s.phone}<br><span style="color:#555;">${s.address}</span></td>
-                    <td><strong>${s.cihaz}</strong><br><em>${s.model}</em><br><span style="color:var(--danger-red);">${s.ariza}</span></td>
-                    <td><span class="status-badge">${s.status}</span></td>
+                <tr data-key="${s._key}">
+                    <td><input type="checkbox"></td>
                     <td>
-                        <button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Görüntüle / Düzenle</button>
+                        <div class="service-no">${s.id || ''}</div>
+                        <div class="service-date">${mainDate}</div>
+                        ${postponed}
+                    </td>
+                    <td>
+                        <div class="customer-name">${s.name || ''}</div>
+                        <div class="muted-line">${s.phone || ''}</div>
+                        <div class="muted-line">${s.address || ''}</div>
+                    </td>
+                    <td>
+                        <div class="device-name">${s.cihaz || ''}</div>
+                        <div class="muted-line"><em>${s.model || ''}</em></div>
+                        <div class="muted-line" style="color:var(--danger-red);">${s.ariza || ''}</div>
+                    </td>
+                    <td>
+                        <span class="status-badge">${s.status || ''}</span>
+                        <div class="muted-line"><strong>Teknisyen :</strong> Doğan Sezai Koçak</div>
+                        <div class="muted-line"><strong>Kaynak :</strong> ${source}</div>
+                    </td>
+                    <td>
+                        <div class="row-actions">
+                            <span class="pdf-pill" onclick="openDetailModal('${s._key}'); setTimeout(printServisFisi, 200);">PDF Fişi<br>${s.pdf ? 'Var' : 'Yok'}</span>
+                            <button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Aç / Düzenle</button>
+                        </div>
                     </td>
                 </tr>
             `;
         });
+        filterServisler();
     }
 
     function openDetailModal(key) {
@@ -493,7 +641,10 @@
         if(!s) return;
         
         document.getElementById('modalHeaderTitle').innerText = `Servis Detay (#${s.id})`;
-        document.getElementById('mDate').innerText = s.date;
+        document.getElementById('mDate').innerText = s.date || '';
+        document.getElementById('mServiceDate').innerText = formatDateShort(s.serviceDate) || 'Belirtilmedi';
+        document.getElementById('mPostponedDate').innerText = formatDateShort(s.postponedDate) || 'Yok';
+        document.getElementById('mSource').innerText = s.source || 'Saha';
         document.getElementById('mName').innerText = s.name;
         document.getElementById('mPhone').innerText = s.phone;
         document.getElementById('mAddress').innerText = s.address;
@@ -737,6 +888,9 @@
         document.getElementById('newName').value = '';
         document.getElementById('newPhone').value = '';
         document.getElementById('newAddress').value = '';
+        document.getElementById('newServiceDate').value = '';
+        document.getElementById('newPostponedDate').value = '';
+        document.getElementById('newSource').value = 'Saha';
         document.getElementById('newCihaz').value = '';
         document.getElementById('newModel').value = '';
         document.getElementById('newAriza').value = '';
@@ -752,6 +906,9 @@
         let name = document.getElementById('newName').value.trim();
         let phone = document.getElementById('newPhone').value.trim();
         let address = document.getElementById('newAddress').value.trim();
+        let serviceDate = document.getElementById('newServiceDate').value;
+        let postponedDate = document.getElementById('newPostponedDate').value;
+        let source = document.getElementById('newSource').value || 'Saha';
         let cihaz = document.getElementById('newCihaz').value.trim();
         let model = document.getElementById('newModel').value.trim();
         let ariza = document.getElementById('newAriza').value.trim();
@@ -768,17 +925,20 @@
         let newServis = {
             id: idGen,
             date: timeStr,
+            serviceDate: serviceDate || '',
+            postponedDate: postponedDate || '',
+            source: source,
             name: name,
             phone: phone || "Bilinmiyor",
             address: address || "Girilmedi",
             cihaz: cihaz || "Bilinmedi",
             model: model || "Model Girilmedi",
             ariza: ariza || "Belirtilmedi",
-            status: db.durumlar[0] || "Açık Talep"
+            status: postponedDate ? "Ertelendi" : (db.durumlar[0] || "Açık Talep")
         };
 
         const newRef = database.ref('ekzen_db/servisler').push(newServis);
-        database.ref(`ekzen_db/servisler/${newRef.key}/islemler`).push({ time: timeStr, text: "Sistem: Yeni Servis Kaydı Açıldı" });
+        database.ref(`ekzen_db/servisler/${newRef.key}/islemler`).push({ time: timeStr, text: postponedDate ? `Sistem: Yeni Servis Kaydı Açıldı / Ertelenen tarih: ${formatDateShort(postponedDate)}` : "Sistem: Yeni Servis Kaydı Açıldı" });
         closeNewServisModal();
         switchTab('servisler', document.querySelector('.nav-item[title="Servis Listesi"]'));
     }
@@ -840,7 +1000,7 @@
                 <button onclick="window.print()" style="padding:8px 14px; margin-bottom:16px;">Yazdır</button>
                 <div class="header">
                     <div><h1>Ekzen Teknik</h1><div>Servis Takip Fişi</div></div>
-                    <div><strong>Servis No:</strong> #${s.id}<br><strong>Tarih:</strong> ${s.date || ''}<br><strong>Durum:</strong> ${s.status || ''}</div>
+                    <div><strong>Servis No:</strong> #${s.id}<br><strong>Kayıt:</strong> ${s.date || ''}<br><strong>Servis:</strong> ${formatDateShort(s.serviceDate) || 'Belirtilmedi'}<br><strong>Ertelenen:</strong> ${formatDateShort(s.postponedDate) || 'Yok'}<br><strong>Durum:</strong> ${s.status || ''}</div>
                 </div>
                 <div class="grid">
                     <div class="box">
@@ -871,17 +1031,82 @@
         printWindow.document.close();
     }
 
+    function normalizeText(value) {
+        return (value || '').toString().toLocaleUpperCase('tr-TR');
+    }
+
     function filterServisler() {
-        let query = document.getElementById('searchKeyword').value.toUpperCase();
-        let statusFilter = document.getElementById('filterStatus').value.toUpperCase();
+        let query = normalizeText(document.getElementById('searchKeyword')?.value);
+        let phone = normalizeText(document.getElementById('searchPhone')?.value).replace(/\D/g, '');
+        let statusFilter = normalizeText(document.getElementById('filterStatus')?.value);
+        let brand = normalizeText(document.getElementById('filterBrand')?.value);
+        let device = normalizeText(document.getElementById('filterDevice')?.value);
+        let source = normalizeText(document.getElementById('filterSource')?.value);
+        let city = normalizeText(document.getElementById('filterCity')?.value);
+        let district = normalizeText(document.getElementById('filterDistrict')?.value);
+        let startDate = document.getElementById('filterDateStart')?.value;
+        let endDate = document.getElementById('filterDateEnd')?.value;
         const trs = document.getElementById('servisTableBody').getElementsByTagName('tr');
-        
+        let count = 0;
+
         for (let i = 0; i < trs.length; i++) {
-            let text = trs[i].innerText.toUpperCase();
-            let match = text.indexOf(query) > -1;
-            if(statusFilter) match = match && (text.indexOf(statusFilter) > -1);
-            trs[i].style.display = match ? "" : "none";
+            const key = trs[i].dataset.key;
+            const s = db.servisler.find(item => item._key === key) || {};
+            const allText = normalizeText(`${s.id} ${s.name} ${s.phone} ${s.address} ${s.cihaz} ${s.model} ${s.ariza} ${s.status} ${s.source}`);
+            const onlyPhone = (s.phone || '').replace(/\D/g, '');
+            let match = true;
+
+            if(query) match = match && allText.includes(query);
+            if(phone) match = match && onlyPhone.includes(phone);
+            if(statusFilter) match = match && normalizeText(s.status).includes(statusFilter);
+            if(brand) match = match && normalizeText(s.cihaz).includes(brand);
+            if(device) match = match && (normalizeText(s.cihaz).includes(device) || normalizeText(s.model).includes(device));
+            if(source) match = match && normalizeText(s.source || 'Saha').includes(source);
+            if(city) match = match && normalizeText(s.address).includes(city);
+            if(district) match = match && normalizeText(s.address).includes(district);
+
+            const serviceRaw = s.serviceDate || '';
+            const serviceDay = serviceRaw ? serviceRaw.substring(0,10) : '';
+            if(startDate) match = match && serviceDay && serviceDay >= startDate;
+            if(endDate) match = match && serviceDay && serviceDay <= endDate;
+
+            trs[i].style.display = match ? '' : 'none';
+            if(match) count++;
         }
+        const counter = document.getElementById('servisResultCount');
+        if(counter) counter.innerText = count;
+    }
+
+    function quickDateFilter(type) {
+        const now = new Date();
+        const pad = n => String(n).padStart(2,'0');
+        const toDateInput = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        let start = new Date(now), end = new Date(now);
+        if(type === 'yesterday') { start.setDate(start.getDate()-1); end.setDate(end.getDate()-1); }
+        if(type === 'week') { start.setDate(start.getDate()-6); }
+        document.getElementById('filterDateStart').value = toDateInput(start);
+        document.getElementById('filterDateEnd').value = toDateInput(end);
+        filterServisler();
+    }
+
+    function clearFilters() {
+        ['searchKeyword','searchPhone','filterBrand','filterDevice','filterStatus','filterSource','filterCity','filterDistrict','filterDateStart','filterDateEnd'].forEach(id => {
+            const el = document.getElementById(id); if(el) el.value = '';
+        });
+        filterServisler();
+    }
+
+    function sortServislerByDate() {
+        sortNewestFirst = !sortNewestFirst;
+        renderServisler();
+    }
+
+    function printServisListesi() {
+        const rows = [...document.querySelectorAll('#servisTableBody tr')].filter(tr => tr.style.display !== 'none').map(tr => tr.innerText.replace(/Aç \/ Düzenle/g,'')).join('\n\n');
+        const printWindow = window.open('', '_blank');
+        if(!printWindow) { alert('Yazdırma penceresi açılamadı.'); return; }
+        printWindow.document.write(`<pre style="font-family:Arial; white-space:pre-wrap; font-size:13px;"><h2>Ekzen Teknik - Servis Listesi</h2>${rows}</pre><script>window.print();<\/script>`);
+        printWindow.document.close();
     }
 
     function closeModal() { 
