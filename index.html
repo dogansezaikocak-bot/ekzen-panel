@@ -132,6 +132,8 @@
         .dashboard-services-panel { background:#fff; border:1px solid #d8dee9; border-radius:8px; box-shadow:0 2px 10px rgba(15,23,42,.08); padding:16px; margin-top:18px; overflow-x:auto; }
         .dashboard-services-header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
         .dashboard-services-header h2 { font-size:19px; color:#555; margin:0; }
+        .dashboard-filter-results.hidden { display: none; }
+        .dashboard-filter-placeholder { background:#f8fafc; border:1px dashed #cbd5e1; color:#64748b; padding:14px; border-radius:8px; font-size:13px; text-align:center; margin-top:12px; }
         .empty-state { padding:18px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; color:#64748b; font-weight:700; text-align:center; }
         .service-filter-panel h3 { font-size:17px; color:#555; padding-bottom:8px; margin-bottom:10px; border-bottom:1px solid #cbd5e1; }
         .service-filter-panel input, .service-filter-panel select { width:100%; padding:9px; margin-bottom:8px; border:1px solid #cfd6df; border-radius:4px; font-size:14px; background:#fff; }
@@ -418,23 +420,26 @@
                     </div>
                     <button class="btn btn-gray" style="width:100%; justify-content:center;" onclick="filterServisler()">Ara</button>
                 </aside>
-                <div class="service-title-row" style="margin-top:12px;">
-                    <h2>FİLTRE SONUÇLARI</h2>
-                    <span style="font-size:13px; color:#64748b;">Sonuç: <strong id="homeServisResultCount">0</strong></span>
+                <div id="homeFilterPlaceholder" class="dashboard-filter-placeholder">Servisleri görmek için Filtrele butonuna basın.</div>
+                <div id="homeFilterResults" class="dashboard-filter-results hidden">
+                    <div class="service-title-row" style="margin-top:12px;">
+                        <h2>FİLTRE SONUÇLARI</h2>
+                        <span style="font-size:13px; color:#64748b;">Sonuç: <strong id="homeServisResultCount">0</strong></span>
+                    </div>
+                    <table class="service-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"></th>
+                                <th>Tarih</th>
+                                <th>Müşteri</th>
+                                <th>Cihaz</th>
+                                <th>Durum</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="homeServisTableBody"></tbody>
+                    </table>
                 </div>
-                <table class="service-table">
-                    <thead>
-                        <tr>
-                            <th style="width:40px;"></th>
-                            <th>Tarih</th>
-                            <th>Müşteri</th>
-                            <th>Cihaz</th>
-                            <th>Durum</th>
-                            <th>İşlem</th>
-                        </tr>
-                    </thead>
-                    <tbody id="homeServisTableBody"></tbody>
-                </table>
             </div>
 
         </div>
@@ -967,11 +972,16 @@
     function toggleFilterPanel() {
         const panel = document.getElementById('serviceFilterPanel');
         const btn = document.getElementById('filterToggleButton');
+        const results = document.getElementById('homeFilterResults');
+        const placeholder = document.getElementById('homeFilterPlaceholder');
         if(!panel) return;
         const willClose = !panel.classList.contains('filter-closed');
         panel.classList.toggle('filter-closed', willClose);
         if(btn) btn.innerText = willClose ? '🔍 Filtrele' : '✖ Filtreyi Kapat';
+        if(results) results.classList.toggle('hidden', willClose);
+        if(placeholder) placeholder.style.display = willClose ? 'block' : 'none';
         if(willClose) clearFilters();
+        else filterServisler();
     }
 
     function setServiceTab(tab) {
@@ -1060,6 +1070,12 @@
         });
         const homeTbody = document.getElementById('homeServisTableBody');
         if(homeTbody) homeTbody.innerHTML = tbody.innerHTML;
+        const homePanel = document.getElementById('serviceFilterPanel');
+        const results = document.getElementById('homeFilterResults');
+        const placeholder = document.getElementById('homeFilterPlaceholder');
+        const homeClosed = homePanel && homePanel.classList.contains('filter-closed');
+        if(results) results.classList.toggle('hidden', !!homeClosed);
+        if(placeholder) placeholder.style.display = homeClosed ? 'block' : 'none';
         filterServisler();
     }
 
