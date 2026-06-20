@@ -484,7 +484,7 @@
 
                 <div class="info-grid">
                     <div class="info-card">
-                        <h4>Müşteri Bilgisi <button class="btn btn-blue btn-small" onclick="editMüşteriBilgisi()">Düzenle</button></h4>
+                        <h4>Müşteri Bilgisi <span style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn btn-green btn-small" onclick="openRepeatServisFromActiveCustomer()">↻ Tekrar Servis Aç</button><button class="btn btn-blue btn-small" onclick="editMüşteriBilgisi()">Düzenle</button></span></h4>
                         <div class="info-row"><div class="info-label">Müşteri Adı:</div><div id="mName"></div></div>
                         <div class="info-row"><div class="info-label">Telefon:</div><div id="mPhone"></div></div>
                         <div class="info-row"><div class="info-label">Adres:</div><div id="mAddress"></div></div>
@@ -837,7 +837,8 @@
                     <td><div class="customer-name">${s.name || ''}</div><div class="muted-line">${s.phone || ''}</div><div class="muted-line">${s.address || ''}</div></td>
                     <td><div class="device-name">${s.cihaz || ''}</div><div class="muted-line"><em>${s.model || ''}</em></div><div class="muted-line" style="color:var(--danger-red);">${s.ariza || ''}</div></td>
                     <td><span class="status-badge">${s.status || ''}</span><div class="muted-line"><strong>Teknisyen :</strong> ${technician}</div></td>
-                    <td><div class="row-actions"><button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Aç / Düzenle</button><button class="btn btn-blue btn-small" onclick="callCustomerPhoneByKey('${s._key}')">📞 Ara</button><button class="btn btn-gray btn-small" onclick="printServisFisiByKey('${s._key}')">🖨️ Yazdır</button></div></td>
+                    <td><div class="row-actions"><button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Aç / Düzenle</button>
+                            <button class="btn btn-green btn-small" onclick="openRepeatServisByKey('${s._key}')">↻ Tekrar Aç</button><button class="btn btn-blue btn-small" onclick="callCustomerPhoneByKey('${s._key}')">📞 Ara</button><button class="btn btn-gray btn-small" onclick="printServisFisiByKey('${s._key}')">🖨️ Yazdır</button></div></td>
                 </tr>
             `;
         });
@@ -1244,6 +1245,33 @@
 
     function closeNewServisModal() {
         document.getElementById('newServisModal').style.display = 'none';
+    }
+
+    function openRepeatServisByKey(key) {
+        const oldServis = db.servisler.find(item => item._key === key);
+        if(!oldServis) return;
+        openNewServisModal();
+
+        document.getElementById('newName').value = oldServis.name || '';
+        document.getElementById('newPhone').value = oldServis.phone || '';
+        document.getElementById('newAddress').value = oldServis.address || '';
+        document.getElementById('newSource').value = oldServis.source || (db.kaynaklar[0] || 'Saha');
+        document.getElementById('newTechnician').value = oldServis.technician || oldServis.teknisyen || '';
+
+        document.getElementById('newCihaz').value = oldServis.cihaz || '';
+        document.getElementById('newModel').value = oldServis.model || '';
+        document.getElementById('newAriza').value = '';
+        document.getElementById('newServiceDate').value = '';
+        document.getElementById('newPostponedDate').value = '';
+
+        const note = `Önceki servis no: #${oldServis.id || ''}`;
+        document.getElementById('newAriza').placeholder = `${note} - Yeni arıza / yapılacak işlem yazın...`;
+        setTimeout(() => document.getElementById('newAriza').focus(), 150);
+    }
+
+    function openRepeatServisFromActiveCustomer() {
+        if(!activeServisKey) return;
+        openRepeatServisByKey(activeServisKey);
     }
 
     function saveNewServisFromForm() {
