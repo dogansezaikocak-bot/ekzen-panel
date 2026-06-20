@@ -124,7 +124,13 @@
         .service-tab:hover { background:#eef6ff; }
         .service-tab.primary:hover { background:var(--dark-blue); }
         .service-layout { display:grid; grid-template-columns: 230px 1fr; min-height: calc(100vh - 150px); }
+        .service-layout.filter-closed { grid-template-columns: 1fr; }
         .service-filter-panel { background:#f8fafc; border-right:1px solid #d8dee9; padding:12px; }
+        .service-filter-panel.filter-closed { display:none; }
+        .dashboard-services-panel { background:#fff; border:1px solid #d8dee9; border-radius:8px; box-shadow:0 2px 10px rgba(15,23,42,.08); padding:16px; margin-top:18px; overflow-x:auto; }
+        .dashboard-services-header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+        .dashboard-services-header h2 { font-size:19px; color:#555; margin:0; }
+        .empty-state { padding:18px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; color:#64748b; font-weight:700; text-align:center; }
         .service-filter-panel h3 { font-size:17px; color:#555; padding-bottom:8px; margin-bottom:10px; border-bottom:1px solid #cbd5e1; }
         .service-filter-panel input, .service-filter-panel select { width:100%; padding:9px; margin-bottom:8px; border:1px solid #cfd6df; border-radius:4px; font-size:14px; background:#fff; }
         .date-pair { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
@@ -236,6 +242,12 @@
             .service-table td:nth-child(4)::before { content: 'Cihaz'; }
             .service-table td:nth-child(5)::before { content: 'Durum'; }
             .service-table td:nth-child(6)::before { content: 'İşlem'; }
+            .dashboard-table td:first-child { display: grid; grid-template-columns: 94px 1fr; gap: 8px; align-items: start; }
+            .dashboard-table td:first-child::before { content: 'Tarih'; color: #64748b; font-weight: 800; font-size: 12px; }
+            .dashboard-table td:nth-child(2)::before { content: 'Müşteri'; }
+            .dashboard-table td:nth-child(3)::before { content: 'Cihaz'; }
+            .dashboard-table td:nth-child(4)::before { content: 'Durum'; }
+            .dashboard-table td:nth-child(5)::before { content: 'İşlem'; }
             .service-date { font-size: 13px; }
             .customer-name, .device-name { font-size: 14px; }
             .muted-line { font-size: 12px; word-break: break-word; }
@@ -321,12 +333,33 @@
                 <div class="stat-card"><h3>Sistem Durumu</h3><div class="value" style="color:var(--success-green); font-size:18px; padding-top:15px;">Çevrimiçi</div></div>
                 <div class="stat-card"><h3>Kasa Durumu</h3><div class="value" id="dashKasaBox" style="font-size:24px; padding-top:10px;">0 ₺</div></div>
             </div>
+
+            <div class="dashboard-services-panel">
+                <div class="dashboard-services-header">
+                    <h2>YENİ KAYIT OLAN SERVİSLER</h2>
+                    <button class="btn btn-blue" onclick="openNewServisModal()">➕ Yeni Servis Ekle</button>
+                </div>
+                <table class="service-table dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Müşteri</th>
+                            <th>Cihaz</th>
+                            <th>Durum</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardNewServicesBody"></tbody>
+                </table>
+                <div id="dashboardEmptyNewServices" class="empty-state" style="display:none;">Yeni kayıt bekleyen servis yok.</div>
+            </div>
         </div>
 
         <div id="servisler" class="content-area">
             <div class="service-shell">
                 <div class="service-tabs">
                     <button class="service-tab primary" onclick="openNewServisModal()">✎ Yeni Servis Ekle</button>
+                    <button class="service-tab" id="filterToggleButton" onclick="toggleFilterPanel()">🔍 Filtrele</button>
                     <button class="service-tab" onclick="setServiceTab('all')">➤ Tüm Servisler</button>
                     <button class="service-tab" onclick="setServiceTab('teknisyen')">♙ Teknisyen Servisleri</button>
                     <button class="service-tab" onclick="setServiceTab('operator')">👷 Operatör Servisleri</button>
@@ -334,8 +367,8 @@
                     <button class="service-tab" onclick="setServiceTab('planlama')">▦ Servis Planlama</button>
                     <button class="service-tab" onclick="setServiceTab('istatistik')">◷ İstatistik</button>
                 </div>
-                <div class="service-layout">
-                    <aside class="service-filter-panel">
+                <div class="service-layout filter-closed" id="serviceLayout">
+                    <aside class="service-filter-panel filter-closed" id="serviceFilterPanel">
                         <h3>Servis Arama</h3>
                         <input type="text" id="searchKeyword" onkeyup="filterServisler()" placeholder="Müşteri Adı / Servis No">
                         <input type="text" id="searchPhone" onkeyup="filterServisler()" placeholder="Telefon Numarası">
@@ -650,6 +683,7 @@
             
             updateDashboard();
             updateStatusSelectors();
+            renderDashboardNewServices();
             
             if(document.getElementById('servisler').classList.contains('active')) renderServisler();
             if(document.getElementById('kasa').classList.contains('active')) renderKasa();
@@ -687,7 +721,9 @@
 
     function updateDashboard() {
         document.getElementById('dashTotalServis').innerText = db.servisler.length;
-        document.getElementById('dashBugun').innerText = db.servisler.length;
+        const todayIso = new Date().toISOString().substring(0,10);
+        const todayCount = db.servisler.filter(s => ((s.serviceDate || s.date || '').substring(0,10) === todayIso)).length;
+        document.getElementById('dashBugun').innerText = todayCount;
         
         let netKasa = db.kasa.reduce((sum, item) => sum + parseInt(item.tutar || 0), 0);
         let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
@@ -752,6 +788,51 @@
         const raw = s.serviceDate || s.postponedDate || s.date || '';
         if(raw.includes('T')) return new Date(raw).getTime();
         return 0;
+    }
+
+    function isNewServiceRecord(s) {
+        const firstStatus = db.durumlar && db.durumlar.length ? db.durumlar[0] : 'Açık Talep';
+        const status = normalizeText(s.status || '');
+        return status === normalizeText(firstStatus) || status.includes('AÇIK') || status.includes('YENİ');
+    }
+
+    function renderDashboardNewServices() {
+        const tbody = document.getElementById('dashboardNewServicesBody');
+        const empty = document.getElementById('dashboardEmptyNewServices');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        const newServices = [...db.servisler]
+            .filter(isNewServiceRecord)
+            .sort((a,b) => getServisSortDate(b) - getServisSortDate(a));
+
+        newServices.forEach(s => {
+            const mainDate = s.serviceDate ? formatDateShort(s.serviceDate) : (s.date || '');
+            const technician = s.technician || s.teknisyen || 'Atanmadı';
+            tbody.innerHTML += `
+                <tr data-key="${s._key}">
+                    <td><div class="service-no">#${s.id || ''}</div><div class="service-date">${mainDate}</div></td>
+                    <td><div class="customer-name">${s.name || ''}</div><div class="muted-line">${s.phone || ''}</div><div class="muted-line">${s.address || ''}</div></td>
+                    <td><div class="device-name">${s.cihaz || ''}</div><div class="muted-line"><em>${s.model || ''}</em></div><div class="muted-line" style="color:var(--danger-red);">${s.ariza || ''}</div></td>
+                    <td><span class="status-badge">${s.status || ''}</span><div class="muted-line"><strong>Teknisyen :</strong> ${technician}</div></td>
+                    <td><div class="row-actions"><button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Aç / Düzenle</button><button class="btn btn-blue btn-small" onclick="callCustomerPhoneByKey('${s._key}')">📞 Ara</button><button class="btn btn-gray btn-small" onclick="printServisFisiByKey('${s._key}')">🖨️ Yazdır</button></div></td>
+                </tr>
+            `;
+        });
+        if(empty) empty.style.display = newServices.length ? 'none' : 'block';
+        const table = tbody.closest('table');
+        if(table) table.style.display = newServices.length ? 'table' : 'none';
+    }
+
+    function toggleFilterPanel() {
+        const panel = document.getElementById('serviceFilterPanel');
+        const layout = document.getElementById('serviceLayout');
+        const btn = document.getElementById('filterToggleButton');
+        if(!panel || !layout) return;
+        const willClose = !panel.classList.contains('filter-closed');
+        panel.classList.toggle('filter-closed', willClose);
+        layout.classList.toggle('filter-closed', willClose);
+        if(btn) btn.innerText = willClose ? '🔍 Filtrele' : '✖ Filtreyi Kapat';
+        if(willClose) clearFilters();
     }
 
     function setServiceTab(tab) {
@@ -1182,7 +1263,8 @@
         const newRef = database.ref('ekzen_db/servisler').push(newServis);
         database.ref(`ekzen_db/servisler/${newRef.key}/islemler`).push({ time: timeStr, text: postponedDate ? `Sistem: Yeni Servis Kaydı Açıldı / Ertelenen tarih: ${formatDateShort(postponedDate)}` : "Sistem: Yeni Servis Kaydı Açıldı" });
         closeNewServisModal();
-        switchTab('servisler', document.querySelector('.nav-item[title="Servis Listesi"]'));
+        renderDashboardNewServices();
+        switchTab('dashboard', document.querySelector('.nav-item[title="Ana Sayfa"]'));
     }
 
     function normalizePhoneForLink(phone) {
