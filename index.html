@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V13 Mobil Toplu Liste</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V14 Bugün Servisleri</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -406,7 +406,7 @@
                 <div class="service-tabs">
                     <button class="service-tab primary" onclick="openNewServisModal()">✎ Yeni Servis Ekle</button>
                     <button class="service-tab" id="filterToggleButton" onclick="toggleFilterPanel()">🔍 Filtrele</button>
-                    <button class="service-tab" onclick="setServiceTab('all')">➤ Tüm Servisler</button>
+                    <button class="service-tab" id="todayServicesButton" onclick="showTodayServices()">➤ Bugün</button>
                     <button class="service-tab" onclick="setServiceTab('teknisyen')">♙ Teknisyen Servisleri</button>
                     <button class="service-tab" onclick="setServiceTab('operator')">👷 Operatör Servisleri</button>
                     <button class="service-tab" onclick="setServiceTab('atolye')">⌂ Atölyedeki Cihazlar</button>
@@ -958,6 +958,12 @@
 
     function setServiceTab(tab) {
         activeServiceTab = tab;
+        filterServisler();
+    }
+
+    function showTodayServices() {
+        activeServiceTab = 'today';
+        clearFilters(false);
         filterServisler();
     }
 
@@ -1640,7 +1646,57 @@
                     .signature { display:flex; justify-content:space-between; margin-top:50px; }
                     .sigbox { width:220px; border-top:1px solid #333; text-align:center; padding-top:8px; }
                     @media print { button { display:none; } body { padding:0; } }
-                </style>
+            
+
+        /* V13 - Mobilde toplu servis kartı: sadece isim / telefon / adres / şikayet */
+        @media (max-width: 768px) {
+            .mobile-open-link { cursor: pointer; }
+            .customer-address { color: var(--main-blue); font-weight: 700; background: #eef6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 8px 10px; margin-top: 7px; }
+            .customer-address::after { content: '  › Detay'; color: #64748b; font-size: 11px; font-weight: 800; }
+
+            .dashboard-services-panel { overflow: visible; padding: 10px; border-radius: 12px; }
+            .dashboard-services-panel .service-table,
+            .dashboard-services-panel .service-table tbody,
+            .dashboard-services-panel .service-table tr,
+            .dashboard-services-panel .service-table td,
+            .service-list-panel .service-table,
+            .service-list-panel .service-table tbody,
+            .service-list-panel .service-table tr,
+            .service-list-panel .service-table td { display: block; width: 100%; min-width: 0; }
+
+            .dashboard-services-panel .service-table thead,
+            .service-list-panel .service-table thead { display: none; }
+
+            .dashboard-services-panel .service-table tr,
+            .service-list-panel .service-table tr { background: #ffffff; border: 1px solid #d8dee9; border-radius: 14px; margin-bottom: 10px; padding: 12px; box-shadow: 0 2px 8px rgba(15,23,42,.08); }
+
+            .dashboard-services-panel .service-table td,
+            .service-list-panel .service-table td { border: 0; padding: 0; }
+
+            .dashboard-services-panel .service-table td::before,
+            .service-list-panel .service-table td::before { display: none !important; content: none !important; }
+
+            /* Ana sayfa mobil: tarih, durum ve işlem görünmesin */
+            .dashboard-services-panel .service-table td:nth-child(1),
+            .dashboard-services-panel .service-table td:nth-child(4),
+            .dashboard-services-panel .service-table td:nth-child(5) { display: none !important; }
+
+            /* Servisler mobil: seçim, tarih, durum ve işlem görünmesin */
+            .service-list-panel .service-table td:nth-child(1),
+            .service-list-panel .service-table td:nth-child(2),
+            .service-list-panel .service-table td:nth-child(5),
+            .service-list-panel .service-table td:nth-child(6) { display: none !important; }
+
+            /* Cihaz/model gizlensin; sadece şikayet görünsün */
+            .dashboard-services-panel .service-table td:nth-child(3) > div:not(.complaint-line),
+            .service-list-panel .service-table td:nth-child(4) > div:not(.complaint-line) { display: none !important; }
+
+            .customer-name { font-size: 16px; color: #0f172a; margin-bottom: 5px; }
+            .muted-line { font-size: 13px; line-height: 1.35; }
+            .complaint-line { margin-top: 9px; background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 8px 10px; color: #9a3412 !important; font-weight: 700; }
+            .complaint-line::before { content: 'Şikayet: '; color: #92400e; }
+        }
+    </style>
             </head>
             <body>
                 <button onclick="window.print()" style="padding:8px 14px; margin-bottom:16px;">Yazdır</button>
@@ -1725,6 +1781,7 @@
             if(device) match = match && (normalizeText(s.cihaz).includes(device) || normalizeText(s.model).includes(device));
             if(source) match = match && normalizeText(s.source || 'Saha').includes(source);
             if(technicianFilter) match = match && normalizeText(s.technician || s.teknisyen || '').includes(technicianFilter);
+            if(activeServiceTab === 'today') match = match && getServicePlanDateKey(s) === getLocalDateKey(0);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
             if(activeServiceTab === 'planlama') match = match && !!(s.serviceDate || s.postponedDate);
             if(activeServiceTab === 'atolye') match = match && normalizeText(s.status).includes('ATÖLYE');
@@ -1744,6 +1801,7 @@
     }
 
     function quickDateFilter(type) {
+        activeServiceTab = 'all';
         const now = new Date();
         const pad = n => String(n).padStart(2,'0');
         const toDateInput = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -1755,10 +1813,11 @@
         filterServisler();
     }
 
-    function clearFilters() {
+    function clearFilters(resetTab = true) {
         ['searchKeyword','searchPhone','filterBrand','filterDevice','filterStatus','filterSource','filterTechnician','filterCity','filterDistrict','filterDateStart','filterDateEnd'].forEach(id => {
             const el = document.getElementById(id); if(el) el.value = '';
         });
+        if(resetTab) activeServiceTab = 'all';
         filterServisler();
     }
 
