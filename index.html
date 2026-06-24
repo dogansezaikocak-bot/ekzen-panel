@@ -481,10 +481,11 @@
             <div class="service-shell">
                 <div class="service-tabs">
                     <button class="service-tab primary" onclick="openNewServisModal()">✎ Yeni Servis Ekle</button>
+                    <button class="service-tab" id="searchAllServicesButton" onclick="searchAllServicesPrompt()">🔎 Ara</button>
                     <button class="service-tab" id="todayServicesButton" onclick="showTodayServices()">➤ Bugün</button>
+                    <button class="service-tab" id="tomorrowServicesButton" onclick="showTomorrowServices()">☀️ Yarın</button>
                     <button class="service-tab" id="openJobsButton" onclick="showOpenJobs()">🟦 Açık İşler</button>
-                    <button class="service-tab" id="allServicesButton" onclick="showAllServices()">📋 Tüm Servisler</button>
-                    <button class="service-tab" id="dayEndButton" onclick="showDayEndServices()">🌙 Gün Sonu</button>
+                    <button class="service-tab" id="allServicesButton" onclick="showAllServices()">📋 Tüm Kayıtlar</button>
                 </div>
                 <div class="service-layout filter-closed" id="serviceLayout">
                     <main class="service-list-panel">
@@ -975,10 +976,49 @@
         return value;
     }
 
+    function parseServiceDateValue(value) {
+        if(!value) return null;
+        if(value.includes('T')) {
+            const d = new Date(value);
+            return isNaN(d.getTime()) ? null : d;
+        }
+        const trMatch = value.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+        if(trMatch) {
+            const d = new Date(
+                parseInt(trMatch[3], 10),
+                parseInt(trMatch[2], 10) - 1,
+                parseInt(trMatch[1], 10),
+                parseInt(trMatch[4] || '0', 10),
+                parseInt(trMatch[5] || '0', 10)
+            );
+            return isNaN(d.getTime()) ? null : d;
+        }
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function getServiceDisplayDateRaw(s) {
+        return s.postponedDate || s.serviceDate || s.date || '';
+    }
+
+    function formatServiceListDate(value) {
+        if(!value) return '';
+        const d = parseServiceDateValue(value);
+        if(!d) return value;
+        return d.toLocaleString('tr-TR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            weekday: 'long',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
     function getServisSortDate(s) {
-        const raw = s.serviceDate || s.postponedDate || s.date || '';
-        if(raw.includes('T')) return new Date(raw).getTime();
-        return 0;
+        const raw = getServiceDisplayDateRaw(s);
+        const d = parseServiceDateValue(raw);
+        return d ? d.getTime() : 0;
     }
 
     function isNewServiceRecord(s) {
@@ -1051,6 +1091,22 @@
         filterServisler();
     }
 
+    function showTomorrowServices() {
+        activeServiceTab = 'tomorrow';
+        clearFilters(false);
+        filterServisler();
+    }
+
+    function searchAllServicesPrompt() {
+        const keyword = prompt('Tüm kayıtlarda aranacak kelimeyi yazın:');
+        if(keyword === null) return;
+        activeServiceTab = 'all';
+        clearFilters(false);
+        const searchInput = document.getElementById('searchKeyword');
+        if(searchInput) searchInput.value = keyword.trim();
+        filterServisler();
+    }
+
     function showOpenJobs() {
         activeServiceTab = 'open';
         clearFilters(false);
@@ -1086,10 +1142,9 @@
         let list = [...db.servisler].sort((a,b) => sortNewestFirst ? getServisSortDate(b)-getServisSortDate(a) : getServisSortDate(a)-getServisSortDate(b));
 
         list.forEach((s) => {
-            const mainDate = s.serviceDate ? formatDateShort(s.serviceDate) : (s.date || '');
-            const postponed = s.postponedDate ? `<div class="postponed-badge">Ertelendi: ${formatDateShort(s.postponedDate)}</div>` : '';
+            const mainDate = formatServiceListDate(getServiceDisplayDateRaw(s));
+            const postponed = s.postponedDate ? `<div class="postponed-badge">Ertelenen tarih aktif</div>` : '';
             const source = s.source || 'Saha';
-            const technician = s.technician || s.teknisyen || 'Atanmadı';
             tbody.innerHTML += `
                 <tr data-key="${s._key}">
                     <td><input type="checkbox"></td>
@@ -1110,15 +1165,11 @@
                     </td>
                     <td>
                         <span class="status-badge">${s.status || ''}</span>
-                        <div class="muted-line"><strong>Teknisyen :</strong> ${technician}</div>
                         <div class="muted-line"><strong>Kaynak :</strong> ${source}</div>
                     </td>
                     <td>
                         <div class="row-actions">
-                            <span class="pdf-pill" onclick="printServisFisiByKey('${s._key}')">PDF Fişi<br>${s.pdf ? 'Var' : 'Yok'}</span>
                             <button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Aç / Düzenle</button>
-                            <button class="btn btn-blue btn-small" onclick="callCustomerPhoneByKey('${s._key}')">📞 Ara</button>
-                            <button class="btn btn-gray btn-small" onclick="printServisFisiByKey('${s._key}')">🖨️ Yazdır</button>
                         </div>
                     </td>
                 </tr>
@@ -2210,6 +2261,7 @@
             if(source) match = match && normalizeText(s.source || 'Saha').includes(source);
             if(technicianFilter) match = match && normalizeText(s.technician || s.teknisyen || '').includes(technicianFilter);
             if(activeServiceTab === 'today') match = match && getServicePlanDateKey(s) === getLocalDateKey(0);
+            if(activeServiceTab === 'tomorrow') match = match && getServicePlanDateKey(s) === getLocalDateKey(1);
             if(activeServiceTab === 'dayEnd') match = match && getServicePlanDateKey(s) === getLocalDateKey(0) && isNewServiceRecord(s);
             if(activeServiceTab === 'new') match = match && isNewServiceRecord(s);
             if(activeServiceTab === 'open') match = match && isOpenJobRecord(s);
