@@ -474,6 +474,11 @@
                 <p>Servis takip paneline giriş</p>
             </div>
             <div class="login-card-body">
+                <label for="loginUserSelect">Kullanıcı</label>
+                <select id="loginUserSelect" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; margin-bottom:12px; font-size:14px;">
+                    <option value="admin">Ekzen Teknik / Yönetici</option>
+                    <option value="sedef">Sedef Teknik</option>
+                </select>
                 <label for="loginPasswordInput">Şifre</label>
                 <input type="password" id="loginPasswordInput" placeholder="Panel şifresini girin" autocomplete="current-password" onkeydown="if(event.key==='Enter') loginPanel()">
                 <div class="remember-row">
@@ -498,7 +503,7 @@
     <div class="main-wrapper">
         <div class="navbar">
             <div class="navbar-brand">☰ &nbsp; Ekzen Teknik</div>
-            <div class="user-profile">👤 <span><strong>Doğan Sezai Koçak</strong><small>Patron</small></span> | <span style="cursor:pointer;" onclick="logoutPanel()">⏻ Çıkış</span></div>
+            <div class="user-profile">👤 <span><strong id="currentUserName">Doğan Sezai Koçak</strong><small id="currentUserRoleLabel">Patron</small></span> | <span style="cursor:pointer;" onclick="logoutPanel()">⏻ Çıkış</span></div>
         </div>
 
         <div id="dashboard" class="content-area active">
@@ -916,13 +921,132 @@
 
 <script>
 
-    // Basit panel şifresi. Şifreyi değiştirmek için aşağıdaki değeri değiştirin.
-    const EKZEN_PANEL_PASSWORD = "2580";
+    // Basit kullanıcı sistemi. Şifreleri değiştirmek için aşağıdaki değerleri değiştirin.
+    // Not: Bu pratik bir panel kilididir. Gerçek veri güvenliği için Firebase Authentication + Database Rules gerekir.
+    const PANEL_USERS = {
+        admin: {
+            label: "Ekzen Teknik / Yönetici",
+            name: "Doğan Sezai Koçak",
+            roleLabel: "Patron",
+            password: "2580",
+            role: "admin",
+            source: ""
+        },
+        sedef: {
+            label: "Sedef Teknik",
+            name: "Sedef Teknik",
+            roleLabel: "Servis Kaynağı Kullanıcısı",
+            password: "1453",
+            role: "partner",
+            source: "Sedef Teknik"
+        }
+    };
+
+    let currentUserKey = 'admin';
+    let currentUser = PANEL_USERS.admin;
+
+    function setCurrentUser(userKey) {
+        currentUserKey = PANEL_USERS[userKey] ? userKey : 'admin';
+        currentUser = PANEL_USERS[currentUserKey] || PANEL_USERS.admin;
+        const nameEl = document.getElementById('currentUserName');
+        const roleEl = document.getElementById('currentUserRoleLabel');
+        if(nameEl) nameEl.innerText = currentUser.name;
+        if(roleEl) roleEl.innerText = currentUser.roleLabel;
+        applyUserPermissions();
+    }
+
+    function getRememberedUserKey() {
+        return localStorage.getItem('ekzen_panel_user') || sessionStorage.getItem('ekzen_panel_user') || 'admin';
+    }
+
+    function isAdminUser() { return currentUser && currentUser.role === 'admin'; }
+    function isPartnerUser() { return currentUser && currentUser.role === 'partner'; }
+    function getUserSource() { return currentUser && currentUser.source ? currentUser.source : ''; }
+
+    function canSeeServis(s) {
+        if(isAdminUser()) return true;
+        const src = (s && (s.source || 'Saha')) || 'Saha';
+        return src === getUserSource();
+    }
+
+    function canSeeKasa(k) {
+        if(isAdminUser()) return true;
+        return getKasaSource(k) === getUserSource();
+    }
+
+    function getVisibleServisList() {
+        return db.servisler.filter(canSeeServis);
+    }
+
+    function getVisibleKasaList() {
+        return db.kasa.filter(canSeeKasa);
+    }
+
+    function requireAdmin(message) {
+        if(isAdminUser()) return true;
+        alert(message || 'Bu işlem için yönetici yetkisi gerekir.');
+        return false;
+    }
+
+    function requireVisibleActiveServis() {
+        const s = db.servisler.find(item => item._key === activeServisKey);
+        if(!s || !canSeeServis(s)) {
+            alert('Bu servis kaydına erişim yetkiniz yok.');
+            closeModal();
+            return null;
+        }
+        return s;
+    }
+
+    function setDisplayBySelector(selector, show) {
+        document.querySelectorAll(selector).forEach(el => { el.style.display = show ? '' : 'none'; });
+    }
+
+    function applyUserPermissions() {
+        const admin = isAdminUser();
+        // Ayarlar menüsü sadece yöneticiye açık.
+        document.querySelectorAll('.nav-item').forEach(el => {
+            const onclick = el.getAttribute('onclick') || '';
+            if(onclick.includes("'ayarlar'")) el.style.display = admin ? '' : 'none';
+        });
+        // Servis ekleme sadece yöneticiye açık.
+        document.querySelectorAll('button[onclick="openNewServisModal()"], button[onclick="openRepeatServisFromActiveCustomer()"], button[onclick^="openRepeatServisByKey"]').forEach(el => el.style.display = admin ? '' : 'none');
+        // Kasa ekleme/silme sadece yöneticiye açık.
+        document.querySelectorAll('button[onclick="addKasaHareketiPrompt()"]').forEach(el => el.style.display = admin ? '' : 'none');
+        document.querySelectorAll('button[onclick^="deleteKasa"], button[onclick^="deleteKasaOdemeGrubu"]').forEach(el => el.style.display = admin ? '' : 'none');
+        // Servis düzenleme/silme sadece yöneticiye açık. Durum ve ödeme ekleme kullanıcıda açık kalır.
+        document.querySelectorAll('button[onclick="editMüşteriBilgisi()"], button[onclick="editCihazBilgisi()"], button[onclick="editServisTarihBilgisi()"], button[onclick="deleteActiveServis()"], button[onclick="promptNotEkle()"], button[onclick="openRepeatServisFromActiveCustomer()"]').forEach(el => el.style.display = admin ? '' : 'none');
+        const techBox = Array.from(document.querySelectorAll('.section-box')).find(box => (box.innerText || '').includes('TEKNİSYEN ATAMA'));
+        if(techBox) techBox.style.display = admin ? '' : 'none';
+        // Kasa kaynak filtresini kullanıcı için kendi kaynağına sabitle.
+        const kasaSource = document.getElementById('kasaSourceFilter');
+        if(kasaSource && isPartnerUser()) {
+            kasaSource.value = getUserSource();
+            kasaSource.disabled = true;
+        } else if(kasaSource) {
+            kasaSource.disabled = false;
+        }
+        const filterSource = document.getElementById('filterSource');
+        if(filterSource && isPartnerUser()) {
+            filterSource.value = getUserSource();
+            filterSource.disabled = true;
+        } else if(filterSource) {
+            filterSource.disabled = false;
+        }
+        const newSource = document.getElementById('newSource');
+        if(newSource && isPartnerUser()) {
+            newSource.value = getUserSource();
+            newSource.disabled = true;
+        } else if(newSource) {
+            newSource.disabled = false;
+        }
+    }
 
     function checkPanelLogin() {
         const remembered = localStorage.getItem('ekzen_panel_login') === 'ok';
         const sessionOk = sessionStorage.getItem('ekzen_panel_login') === 'ok';
         if (remembered || sessionOk) {
+            setCurrentUser(getRememberedUserKey());
             document.body.classList.remove('auth-locked');
             const overlay = document.getElementById('loginOverlay');
             if (overlay) overlay.style.display = 'none';
@@ -938,16 +1062,22 @@
     }
 
     function loginPanel() {
+        const userSel = document.getElementById('loginUserSelect');
+        const selectedUserKey = userSel && userSel.value ? userSel.value : 'admin';
+        const selectedUser = PANEL_USERS[selectedUserKey] || PANEL_USERS.admin;
         const input = document.getElementById('loginPasswordInput');
         const remember = document.getElementById('rememberLogin');
         const error = document.getElementById('loginError');
         const password = (input && input.value ? input.value : '').trim();
-        if (password === EKZEN_PANEL_PASSWORD) {
+        if (password === selectedUser.password) {
             if (remember && remember.checked) {
                 localStorage.setItem('ekzen_panel_login', 'ok');
+                localStorage.setItem('ekzen_panel_user', selectedUserKey);
             } else {
                 sessionStorage.setItem('ekzen_panel_login', 'ok');
+                sessionStorage.setItem('ekzen_panel_user', selectedUserKey);
             }
+            setCurrentUser(selectedUserKey);
             if (input) input.value = '';
             if (error) error.innerText = '';
             checkPanelLogin();
@@ -960,6 +1090,9 @@
     function logoutPanel() {
         localStorage.removeItem('ekzen_panel_login');
         sessionStorage.removeItem('ekzen_panel_login');
+        localStorage.removeItem('ekzen_panel_user');
+        sessionStorage.removeItem('ekzen_panel_user');
+        setCurrentUser('admin');
         checkPanelLogin();
     }
 
@@ -992,11 +1125,13 @@
             db.kasa = data.kasa ? Object.keys(data.kasa).map(key => ({ _key: key, ...data.kasa[key] })) : [];
             db.durumlar = data.durumlar || ["Açık Talep", "Teknisyen Yönlendirildi", "Ertelendi", "Servis Sonlandırıldı"];
             if(!db.durumlar.includes("Ertelendi")) db.durumlar.push("Ertelendi");
-            db.kaynaklar = data.kaynaklar || ["Saha", "Telefon", "WhatsApp", "Web", "Google", "Referans"];
+            db.kaynaklar = data.kaynaklar || ["Saha", "Telefon", "WhatsApp", "Web", "Google", "Referans", "Sedef Teknik"];
+            if(!db.kaynaklar.includes("Sedef Teknik")) db.kaynaklar.push("Sedef Teknik");
             db.teknisyenler = data.teknisyenler || ["Doğan Sezai Koçak"];
             
             updateDashboard();
             updateStatusSelectors();
+            applyUserPermissions();
             renderDashboardNewServices();
             renderServisler();
             
@@ -1024,6 +1159,7 @@
     }
 
     function switchTab(tabId, element) {
+        if(tabId === 'ayarlar' && !isAdminUser()) { alert('Ayarlar bölümü sadece yöneticiye açıktır.'); return; }
         document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
@@ -1054,15 +1190,16 @@
     }
 
     function updateDashboard() {
-        document.getElementById('dashTotalServis').innerText = db.servisler.length;
+        const visibleServislerForDash = getVisibleServisList();
+        document.getElementById('dashTotalServis').innerText = visibleServislerForDash.length;
 
         const yesterdayKey = getLocalDateKey(-1);
         const todayKey = getLocalDateKey(0);
         const tomorrowKey = getLocalDateKey(1);
 
-        const yesterdayCount = db.servisler.filter(s => getServicePlanDateKey(s) === yesterdayKey).length;
-        const todayCount = db.servisler.filter(s => getServicePlanDateKey(s) === todayKey).length;
-        const tomorrowCount = db.servisler.filter(s => getServicePlanDateKey(s) === tomorrowKey).length;
+        const yesterdayCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) === yesterdayKey).length;
+        const todayCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) === todayKey).length;
+        const tomorrowCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) === tomorrowKey).length;
 
         const dashDun = document.getElementById('dashDun');
         const dashBugun = document.getElementById('dashBugun');
@@ -1071,7 +1208,7 @@
         if(dashBugun) dashBugun.innerText = todayCount;
         if(dashYarin) dashYarin.innerText = tomorrowCount;
         
-        let netKasa = db.kasa.reduce((sum, item) => sum + parseInt(item.tutar || 0), 0);
+        let netKasa = getVisibleKasaList().reduce((sum, item) => sum + parseInt(item.tutar || 0), 0);
         let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
         const kasaKalan = document.getElementById('kasaKalanTutar');
         if(kasaKalan) {
@@ -1119,6 +1256,12 @@
         if(filterSourceSel) filterSourceSel.value = oldSourceFilterVal;
         if(newSourceSel) newSourceSel.value = oldNewSourceVal || (db.kaynaklar[0] || '');
         if(kasaSourceSel) kasaSourceSel.value = oldKasaSourceVal || '';
+        if(isPartnerUser()) {
+            const userSource = getUserSource();
+            if(filterSourceSel) filterSourceSel.value = userSource;
+            if(newSourceSel) newSourceSel.value = userSource;
+            if(kasaSourceSel) kasaSourceSel.value = userSource;
+        }
 
         if(filterTechSel) filterTechSel.innerHTML = '<option value="">Teknisyen</option>';
         if(newTechSel) newTechSel.innerHTML = '<option value="">Teknisyen Seçiniz</option>';
@@ -1302,7 +1445,7 @@
         const tbody = document.getElementById('servisTableBody');
         tbody.innerHTML = '';
 
-        let list = [...db.servisler].sort((a,b) => sortNewestFirst ? getServisSortDate(b)-getServisSortDate(a) : getServisSortDate(a)-getServisSortDate(b));
+        let list = getVisibleServisList().sort((a,b) => sortNewestFirst ? getServisSortDate(b)-getServisSortDate(a) : getServisSortDate(a)-getServisSortDate(b));
 
         list.forEach((s) => {
             const mainDate = formatServiceListDate(getServiceDisplayDateRaw(s));
@@ -1346,6 +1489,7 @@
         const homeClosed = homePanel && homePanel.classList.contains('filter-closed');
         if(results) results.classList.toggle('hidden', !!homeClosed);
         if(placeholder) placeholder.style.display = homeClosed ? 'block' : 'none';
+        applyUserPermissions();
         filterServisler();
     }
 
@@ -1353,6 +1497,7 @@
         activeServisKey = key;
         const s = db.servisler.find(item => item._key === key);
         if(!s) return;
+        if(!canSeeServis(s)) { alert('Bu servis kaydına erişim yetkiniz yok.'); return; }
         
         document.getElementById('modalHeaderTitle').innerText = `Servis Detay (#${s.id})`;
         document.getElementById('mDate').innerText = s.date || '';
@@ -1373,10 +1518,12 @@
         if(assignSel) assignSel.value = s.technician || s.teknisyen || '';
 
         renderModalHistories(s);
+        applyUserPermissions();
         document.getElementById('servisModal').style.display = 'flex';
     }
 
     function editMüşteriBilgisi() {
+        if(!requireAdmin('Bu kullanıcı servis bilgilerini düzenleyemez.')) return;
         const s = db.servisler.find(item => item._key === activeServisKey);
         if(!s) return;
         let newName = prompt("Müşteri Adı Soyadı:", s.name);
@@ -1392,6 +1539,7 @@
     }
 
     function editCihazBilgisi() {
+        if(!requireAdmin('Bu kullanıcı servis bilgilerini düzenleyemez.')) return;
         const s = db.servisler.find(item => item._key === activeServisKey);
         if(!s) return;
         let newCihaz = prompt("Cihaz / Marka:", s.cihaz);
@@ -1408,6 +1556,7 @@
 
 
     function editServisTarihBilgisi() {
+        if(!requireAdmin('Bu kullanıcı servis bilgilerini düzenleyemez.')) return;
         const s = db.servisler.find(item => item._key === activeServisKey);
         if(!s) return;
 
@@ -1433,6 +1582,7 @@
     }
 
     function assignTeknisyen(val) {
+        if(!requireAdmin('Bu kullanıcı servis bilgilerini düzenleyemez.')) return;
         if(!activeServisKey || !val) return;
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
         database.ref(`ekzen_db/servisler/${activeServisKey}`).update({ technician: val });
@@ -1441,10 +1591,15 @@
     }
 
     function deleteActiveServis() {
+        if(!requireAdmin('Bu kullanıcı servis bilgilerini düzenleyemez.')) return;
         if(confirm("DİKKAT! Bu servis kaydını sistemden tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
             database.ref(`ekzen_db/servisler/${activeServisKey}`).remove();
             closeModal();
         }
+    }
+
+    function historyDeleteButton(childNode, key) {
+        return isAdminUser() ? `<span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('${childNode}', '${key}')">✕</span>` : '';
     }
 
     function renderModalHistories(s) {
@@ -1457,7 +1612,7 @@
                 <div>${s.islemler[k].text}</div>
                 <div style="display:flex; align-items:center; gap:10px; color:#888;">
                     ${s.islemler[k].time} 
-                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('islemler', '${k}')">✕</span>
+                    ${historyDeleteButton('islemler', k)}
                 </div>
             </div>
         `).join('') : '';
@@ -1483,7 +1638,7 @@
                     <div><strong>${odeme.text || 'Ödeme'}</strong> (${odeme.type || 'Nakit'})</div>
                     <div class="text-green" style="display:flex; align-items:center; gap:10px;">
                         ${parseInt(odeme.tutar || 0, 10).toLocaleString('tr-TR')} TL 
-                        <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('odemeler', '${k}')">✕</span>
+                        ${historyDeleteButton('odemeler', k)}
                     </div>
                 </div>
                 ${giderHtml}
@@ -1495,13 +1650,14 @@
                 <div>${s.notlar[k].text}</div>
                 <div style="display:flex; align-items:center; gap:10px; color:#888;">
                     ${s.notlar[k].time} 
-                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('notlar', '${k}')">✕</span>
+                    ${historyDeleteButton('notlar', k)}
                 </div>
             </div>
         `).join('') : '';
     }
 
     function deleteHistoryItem(childNode, itemKey) {
+        if(!requireAdmin('Bu kullanıcı geçmiş kayıtlarını silemez.')) return;
         if(!confirm("Bu satırı silmek istediğinize emin misiniz?")) return;
         const s = db.servisler.find(item => item._key === activeServisKey);
         const item = s && s[childNode] ? s[childNode][itemKey] : null;
@@ -1588,6 +1744,8 @@
     }
 
     function saveStageDetailForm() {
+        const allowedServis = requireVisibleActiveServis();
+        if(!allowedServis) return;
         if(!activeServisKey) return;
 
         const val = document.getElementById('stageSelectedName').value;
@@ -1616,7 +1774,7 @@
         else if(stageDate) detailParts.push(`Servis/Gidiş Tarihi: ${formatDateShort(stageDate)}`);
         if(note) detailParts.push(`Açıklama: ${note}`);
 
-        let historyText = `Doğan Sezai Koçak : ${val}`;
+        let historyText = `${currentUser.name} : ${val}`;
         if(detailParts.length) historyText += ` | ${detailParts.join(' | ')}`;
 
         database.ref(`ekzen_db/servisler/${activeServisKey}`).update(updates);
@@ -1647,6 +1805,8 @@
     }
 
     function openPaymentModal() {
+        const allowedServis = requireVisibleActiveServis();
+        if(!allowedServis) return;
         if(!activeServisKey) return;
         document.getElementById('payAmount').value = '';
         document.getElementById('payType').value = 'Nakit';
@@ -1663,6 +1823,8 @@
     }
 
     function savePaymentFromForm() {
+        const allowedServis = requireVisibleActiveServis();
+        if(!allowedServis) return;
         let tutar = parseInt(document.getElementById('payAmount').value, 10) || 0;
         let type = document.getElementById('payType').value;
         let materialAmount = parseInt(document.getElementById('materialExpenseAmount').value, 10) || 0;
@@ -1754,6 +1916,7 @@
     function promptÖdemeEkle() { openPaymentModal(); }
 
     function promptNotEkle() {
+        if(!requireAdmin('Bu kullanıcı servis notu ekleyemez.')) return;
         let notText = prompt("Servis Notu Yazın:");
         if(!notText) return;
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
@@ -1762,6 +1925,7 @@
     }
 
     function renderAyarlar() {
+        if(!requireAdmin('Ayarlar bölümü sadece yöneticiye açıktır.')) return;
         const listContainer = document.getElementById('statusSettingsList');
         listContainer.innerHTML = '';
         db.durumlar.forEach((d, idx) => {
@@ -1797,6 +1961,7 @@
     }
 
     function addNewStatus() {
+        if(!requireAdmin()) return;
         const input = document.getElementById('newStatusInput');
         let val = input.value.trim();
         if(!val) return;
@@ -1808,6 +1973,7 @@
     }
 
     function deleteStatus(idx) {
+        if(!requireAdmin()) return;
         if(confirm(`"${db.durumlar[idx]}" aşamasını silmek istediğinize emin misiniz?`)) {
             db.durumlar.splice(idx, 1);
             saveStatusToCloud();
@@ -1815,6 +1981,7 @@
     }
 
     function addNewSource() {
+        if(!requireAdmin()) return;
         const input = document.getElementById('newSourceInput');
         let val = input.value.trim();
         if(!val) return;
@@ -1825,6 +1992,7 @@
     }
 
     function deleteSource(idx) {
+        if(!requireAdmin()) return;
         if(confirm(`"${db.kaynaklar[idx]}" servis kaynağını silmek istediğinize emin misiniz?`)) {
             db.kaynaklar.splice(idx, 1);
             saveSourcesToCloud();
@@ -1832,6 +2000,7 @@
     }
 
     function addNewTechnician() {
+        if(!requireAdmin()) return;
         const input = document.getElementById('newTechnicianInput');
         let val = input.value.trim();
         if(!val) return;
@@ -1842,6 +2011,7 @@
     }
 
     function deleteTechnician(idx) {
+        if(!requireAdmin()) return;
         if(confirm(`"${db.teknisyenler[idx]}" teknisyenini silmek istediğinize emin misiniz? Eski servis kayıtlarında adı görünmeye devam edebilir.`)) {
             db.teknisyenler.splice(idx, 1);
             saveTechniciansToCloud();
@@ -1873,7 +2043,7 @@
         const source = document.getElementById('kasaSourceFilter') ? document.getElementById('kasaSourceFilter').value : '';
         const direction = document.getElementById('kasaDirectionFilter') ? document.getElementById('kasaDirectionFilter').value : '';
 
-        return db.kasa.filter(k => {
+        return getVisibleKasaList().filter(k => {
             const amount = parseInt(k.tutar || 0, 10);
             const dateKey = getKasaDateKey(k);
             const itemSource = getKasaSource(k);
@@ -1905,7 +2075,7 @@
     function getKasaBalanceForSelectedSource() {
         const sourceEl = document.getElementById('kasaSourceFilter');
         const selectedSource = sourceEl ? sourceEl.value : '';
-        return db.kasa.reduce((sum, item) => {
+        return getVisibleKasaList().reduce((sum, item) => {
             if(selectedSource && getKasaSource(item) !== selectedSource) return sum;
             return sum + (parseInt(item.tutar || 0, 10) || 0);
         }, 0);
@@ -2010,7 +2180,7 @@
                                     <div class="kasa-customer">${kasaEsc(customer)}</div>
                                     <div class="kasa-meta">Servis ${kasaEsc(servisNo)} • ${kasaEsc(g.date)} • ${kasaEsc(g.source)} • ${kasaEsc(g.payType || 'Nakit')}</div>
                                 </div>
-                                <button class="btn btn-danger btn-small" onclick="deleteKasaOdemeGrubu('${g.servisKey}', '${g.odemeKey}')">Kartı Sil</button>
+                                ${isAdminUser() ? `<button class="btn btn-danger btn-small" onclick="deleteKasaOdemeGrubu('${g.servisKey}', '${g.odemeKey}')">Kartı Sil</button>` : ''}
                             </div>
                             <div class="kasa-line">
                                 <div><div class="line-title">Müşteriden Alınan Tutar</div><div class="line-desc">${paymentDesc}</div></div>
@@ -2046,13 +2216,14 @@
                     <td>${kasaEsc(source)}</td>
                     <td>${kasaEsc(k.desc || '')}</td>
                     <td class="${tClass}">${tSign}${amount.toLocaleString('tr-TR')} ₺</td>
-                    <td><button class="btn btn-danger btn-small" onclick="deleteKasaHareketi('${k._key}')">Sil</button></td>
+                    <td>${isAdminUser() ? `<button class="btn btn-danger btn-small" onclick="deleteKasaHareketi('${k._key}')">Sil</button>` : ''}</td>
                 </tr>
             `;
         });
     }
 
     function deleteKasaOdemeGrubu(servisKey, odemeKey) {
+        if(!requireAdmin('Bu kullanıcı kasa hareketi ekleyemez veya silemez.')) return;
         if(!confirm('Bu ödeme kartını ve bağlı kasa hareketlerini silmek istediğinize emin misiniz?')) return;
         db.kasa
             .filter(k => k.servisKey === servisKey && k.odemeKey === odemeKey)
@@ -2070,6 +2241,10 @@
             const el = document.getElementById(id);
             if(el) el.value = '';
         });
+        if(isPartnerUser()) {
+            const src = document.getElementById('kasaSourceFilter');
+            if(src) src.value = getUserSource();
+        }
         renderKasa();
     }
 
@@ -2088,6 +2263,7 @@
     }
 
     function addKasaHareketiPrompt() {
+        if(!requireAdmin('Bu kullanıcı kasa hareketi ekleyemez veya silemez.')) return;
         const source = pickKasaSourcePrompt();
         if(!source) return;
         let desc = prompt("Harcama/Gelir Açıklaması:");
@@ -2100,6 +2276,7 @@
     }
 
     function deleteKasaHareketi(key) {
+        if(!requireAdmin('Bu kullanıcı kasa hareketi ekleyemez veya silemez.')) return;
         if(confirm("Bu kasa hareketini tamamen silmek istediğinize emin misiniz?")) {
             const k = db.kasa.find(item => item._key === key);
             if(k && k.servisKey && k.odemeKey) {
@@ -2181,6 +2358,7 @@
     }
 
     function openNewServisModal() {
+        if(!requireAdmin('Bu kullanıcı yeni servis kaydı açamaz.')) return;
         document.getElementById('newName').value = '';
         document.getElementById('newPhone').value = '';
         document.getElementById('newAddress').value = '';
@@ -2202,6 +2380,7 @@
     }
 
     function openRepeatServisByKey(key) {
+        if(!requireAdmin('Bu kullanıcı tekrar servis açamaz.')) return;
         const oldServis = db.servisler.find(item => item._key === key);
         if(!oldServis) return;
         openNewServisModal();
@@ -2229,6 +2408,7 @@
     }
 
     function saveNewServisFromForm() {
+        if(!requireAdmin('Bu kullanıcı yeni servis kaydı açamaz.')) return;
         let name = document.getElementById('newName').value.trim();
         let phone = document.getElementById('newPhone').value.trim();
         let address = document.getElementById('newAddress').value.trim();
@@ -2483,7 +2663,8 @@
             if(statusFilter) match = match && normalizeText(s.status).includes(statusFilter);
             if(brand) match = match && normalizeText(s.cihaz).includes(brand);
             if(device) match = match && (normalizeText(s.cihaz).includes(device) || normalizeText(s.model).includes(device));
-            if(source) match = match && normalizeText(s.source || 'Saha').includes(source);
+            if(isPartnerUser()) match = match && (s.source || 'Saha') === getUserSource();
+            else if(source) match = match && normalizeText(s.source || 'Saha').includes(source);
             if(technicianFilter) match = match && normalizeText(s.technician || s.teknisyen || '').includes(technicianFilter);
             if(activeServiceTab === 'today') match = match && getServicePlanDateKey(s) === getLocalDateKey(0);
             if(activeServiceTab === 'tomorrow') match = match && getServicePlanDateKey(s) === getLocalDateKey(1);
@@ -2529,6 +2710,10 @@
             const el = document.getElementById(id); if(el) el.value = '';
         });
         if(resetTab) activeServiceTab = 'all';
+        if(isPartnerUser()) {
+            const fs = document.getElementById('filterSource');
+            if(fs) fs.value = getUserSource();
+        }
         filterServisler();
     }
 
