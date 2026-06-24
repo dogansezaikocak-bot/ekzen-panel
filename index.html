@@ -478,6 +478,7 @@
                 <select id="loginUserSelect" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; margin-bottom:12px; font-size:14px;">
                     <option value="admin">Ekzen Teknik / Yönetici</option>
                     <option value="sedef">Sedef Teknik</option>
+                    <option value="korkmaz">Korkmaz Teknik</option>
                 </select>
                 <label for="loginPasswordInput">Şifre</label>
                 <input type="password" id="loginPasswordInput" placeholder="Panel şifresini girin" autocomplete="current-password" onkeydown="if(event.key==='Enter') loginPanel()">
@@ -939,6 +940,14 @@
             password: "1453",
             role: "partner",
             source: "Sedef Teknik"
+        },
+        korkmaz: {
+            label: "Korkmaz Teknik",
+            name: "Korkmaz Teknik",
+            roleLabel: "Servis Kaynağı Kullanıcısı",
+            password: "1985",
+            role: "partner",
+            source: "Korkmaz Teknik"
         }
     };
 
@@ -1125,8 +1134,9 @@
             db.kasa = data.kasa ? Object.keys(data.kasa).map(key => ({ _key: key, ...data.kasa[key] })) : [];
             db.durumlar = data.durumlar || ["Açık Talep", "Teknisyen Yönlendirildi", "Ertelendi", "Servis Sonlandırıldı"];
             if(!db.durumlar.includes("Ertelendi")) db.durumlar.push("Ertelendi");
-            db.kaynaklar = data.kaynaklar || ["Saha", "Telefon", "WhatsApp", "Web", "Google", "Referans", "Sedef Teknik"];
+            db.kaynaklar = data.kaynaklar || ["Saha", "Telefon", "WhatsApp", "Web", "Google", "Referans", "Sedef Teknik", "Korkmaz Teknik"];
             if(!db.kaynaklar.includes("Sedef Teknik")) db.kaynaklar.push("Sedef Teknik");
+            if(!db.kaynaklar.includes("Korkmaz Teknik")) db.kaynaklar.push("Korkmaz Teknik");
             db.teknisyenler = data.teknisyenler || ["Doğan Sezai Koçak"];
             
             updateDashboard();
