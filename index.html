@@ -167,6 +167,20 @@
         .result-count { color:red; font-weight:800; margin-top:14px; font-size:14px; }
         .postponed-field { border-left:4px solid #f59e0b; padding-left:10px; }
 
+
+        /* Kasa servis ödeme kartları */
+        .kasa-card-cell { padding: 12px; background: #f8fafc; }
+        .kasa-payment-card { background: #ffffff; border: 1px solid var(--border-color); border-left: 4px solid var(--main-blue); border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .kasa-card-head { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:8px; }
+        .kasa-customer { font-weight:800; color:#111827; font-size:14px; }
+        .kasa-meta { color:#6b7280; font-size:12px; margin-top:3px; }
+        .kasa-line { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid #eef2f7; font-size:13px; }
+        .kasa-line:first-of-type { border-top:0; }
+        .kasa-line .line-title { font-weight:700; color:#374151; }
+        .kasa-line .line-desc { color:#6b7280; font-size:12px; margin-top:2px; }
+        .kasa-total-line { margin-top:6px; border-top:2px solid #dbeafe; padding-top:9px; font-weight:900; }
+        .kasa-card-actions { margin-top:10px; text-align:right; }
+
         /* MOBİL RESPONSIVE TASARIM KATMANI */
         @media (max-width: 768px) {
             body { flex-direction: column; height: auto; overflow: auto; }
@@ -787,6 +801,14 @@
                             <label for="otherExpenseNote">Diğer Gider Açıklaması</label>
                             <input type="text" id="otherExpenseNote" placeholder="Örn: Yol, otopark, kapora iade...">
                         </div>
+                        <div class="form-field">
+                            <label for="commissionExpenseAmount">Komisyon Tutarı (TL)</label>
+                            <input type="number" id="commissionExpenseAmount" min="0" step="1" placeholder="Örn: 50">
+                        </div>
+                        <div class="form-field">
+                            <label for="commissionExpenseNote">Komisyon Açıklaması</label>
+                            <input type="text" id="commissionExpenseNote" placeholder="Örn: POS komisyonu, aracı payı...">
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button class="btn btn-danger" onclick="closePaymentModal()">Vazgeç</button>
@@ -1258,6 +1280,12 @@
                     <div class="text-red">-${parseInt(giderler.diger.tutar || 0, 10).toLocaleString('tr-TR')} TL</div>
                 </div>`;
             }
+            if(giderler.komisyon && parseInt(giderler.komisyon.tutar || 0, 10) > 0) {
+                giderHtml += `<div class="inner-row" style="border-left-color:var(--danger-red); margin-left:12px;">
+                    <div><strong>Komisyon</strong> - ${giderler.komisyon.desc || ''}</div>
+                    <div class="text-red">-${parseInt(giderler.komisyon.tutar || 0, 10).toLocaleString('tr-TR')} TL</div>
+                </div>`;
+            }
             return `
                 <div class="inner-row">
                     <div><strong>${odeme.text || 'Ödeme'}</strong> (${odeme.type || 'Nakit'})</div>
@@ -1424,6 +1452,8 @@
         document.getElementById('materialExpenseNote').value = '';
         document.getElementById('otherExpenseAmount').value = '';
         document.getElementById('otherExpenseNote').value = '';
+        document.getElementById('commissionExpenseAmount').value = '';
+        document.getElementById('commissionExpenseNote').value = '';
         document.getElementById('paymentModal').style.display = 'flex';
         setTimeout(() => document.getElementById('payAmount').focus(), 100);
     }
@@ -1440,9 +1470,11 @@
         let materialNote = document.getElementById('materialExpenseNote').value.trim();
         let otherAmount = parseInt(document.getElementById('otherExpenseAmount').value, 10) || 0;
         let otherNote = document.getElementById('otherExpenseNote').value.trim();
+        let commissionAmount = parseInt(document.getElementById('commissionExpenseAmount').value, 10) || 0;
+        let commissionNote = document.getElementById('commissionExpenseNote').value.trim();
 
-        if(tutar <= 0 && materialAmount <= 0 && otherAmount <= 0) {
-            alert("Lütfen ödeme, malzeme gideri veya diğer gider için en az bir tutar girin.");
+        if(tutar <= 0 && materialAmount <= 0 && otherAmount <= 0 && commissionAmount <= 0) {
+            alert("Lütfen ödeme, malzeme gideri, diğer gider veya komisyon için en az bir tutar girin.");
             document.getElementById('payAmount').focus();
             return;
         }
@@ -1504,6 +1536,25 @@
                 servisKey: activeServisKey,
                 odemeKey: odemeRef.key,
                 giderType: 'diger',
+                serviceSource: s.source || 'Saha'
+            });
+        }
+
+        if(commissionAmount > 0) {
+            const commissionRef = database.ref('ekzen_db/kasa').push();
+            giderler.komisyon = {
+                tutar: commissionAmount,
+                desc: commissionNote || 'Komisyon gideri',
+                kasaKey: commissionRef.key
+            };
+            commissionRef.set({
+                date: timeStr,
+                type: 'Komisyon',
+                desc: `Komisyon: ${giderler.komisyon.desc} | Servis No #${s.id} - ${s.name}`,
+                tutar: -Math.abs(commissionAmount),
+                servisKey: activeServisKey,
+                odemeKey: odemeRef.key,
+                giderType: 'komisyon',
                 serviceSource: s.source || 'Saha'
             });
         }
@@ -1671,28 +1722,144 @@
         }
     }
 
+    function kasaEsc(val) {
+        return String(val ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+    }
+
+    function kasaMoney(amount) {
+        const n = parseInt(amount || 0, 10) || 0;
+        return n.toLocaleString('tr-TR') + ' ₺';
+    }
+
+    function getKasaGroupedRows(list) {
+        const groups = [];
+        const map = {};
+        const singles = [];
+
+        list.forEach(k => {
+            if(k.servisKey && k.odemeKey) {
+                const gKey = `${k.servisKey}___${k.odemeKey}`;
+                if(!map[gKey]) {
+                    const servis = db.servisler.find(s => s._key === k.servisKey) || {};
+                    map[gKey] = {
+                        key: gKey,
+                        servisKey: k.servisKey,
+                        odemeKey: k.odemeKey,
+                        servis: servis,
+                        date: k.date || '',
+                        source: getKasaSource(k),
+                        payType: '',
+                        payment: null,
+                        material: null,
+                        other: null,
+                        commission: null,
+                        items: []
+                    };
+                    groups.push(map[gKey]);
+                }
+                const group = map[gKey];
+                group.items.push(k);
+                if(!group.date && k.date) group.date = k.date;
+                if(!group.source || group.source === 'Genel') group.source = getKasaSource(k);
+                const amount = parseInt(k.tutar || 0, 10) || 0;
+                const line = { amount, desc: k.desc || '', type: k.type || '', key: k._key };
+                if(k.giderType === 'malzeme') group.material = line;
+                else if(k.giderType === 'diger') group.other = line;
+                else if(k.giderType === 'komisyon') group.commission = line;
+                else if(amount >= 0) { group.payment = line; group.payType = k.type || group.payType || 'Nakit'; }
+                else group.other = line;
+            } else {
+                singles.push(k);
+            }
+        });
+
+        return { groups, singles };
+    }
+
     function renderKasa() {
         const tbody = document.getElementById('kasaTableBody');
         tbody.innerHTML = '';
         const list = getFilteredKasaList();
         updateKasaFilterTotals(list);
 
-        list.forEach((k) => {
+        const grouped = getKasaGroupedRows(list);
+
+        grouped.groups.forEach(g => {
+            const servis = g.servis || {};
+            const customer = servis.name || 'Müşteri bilgisi yok';
+            const servisNo = servis.id ? `#${servis.id}` : '';
+            const paymentAmount = g.payment ? Math.max(g.payment.amount, 0) : 0;
+            const materialAmount = g.material ? Math.abs(g.material.amount) : 0;
+            const otherAmount = g.other ? Math.abs(g.other.amount) : 0;
+            const commissionAmount = g.commission ? Math.abs(g.commission.amount) : 0;
+            const totalExpense = materialAmount + otherAmount;
+            const netTotal = paymentAmount - totalExpense - commissionAmount;
+            const netClass = netTotal < 0 ? 'text-red' : 'text-green';
+
+            let expenseDesc = [];
+            if(g.material) expenseDesc.push(`Malzeme: ${kasaEsc((g.material.desc || '').replace(/\|.*/, '').trim())}`);
+            if(g.other) expenseDesc.push(`Diğer: ${kasaEsc((g.other.desc || '').replace(/\|.*/, '').trim())}`);
+            const expenseDescHtml = expenseDesc.length ? expenseDesc.join('<br>') : 'Masraf girilmedi';
+            const commissionDesc = g.commission ? kasaEsc((g.commission.desc || '').replace(/\|.*/, '').trim()) : 'Komisyon girilmedi';
+            const paymentDesc = g.payment ? kasaEsc((g.payment.desc || '').replace(/\|.*/, '').trim()) : 'Ödeme girilmedi';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td colspan="6" class="kasa-card-cell">
+                        <div class="kasa-payment-card">
+                            <div class="kasa-card-head">
+                                <div>
+                                    <div class="kasa-customer">${kasaEsc(customer)}</div>
+                                    <div class="kasa-meta">Servis ${kasaEsc(servisNo)} • ${kasaEsc(g.date)} • ${kasaEsc(g.source)} • ${kasaEsc(g.payType || 'Nakit')}</div>
+                                </div>
+                                <button class="btn btn-danger btn-small" onclick="deleteKasaOdemeGrubu('${g.servisKey}', '${g.odemeKey}')">Kartı Sil</button>
+                            </div>
+                            <div class="kasa-line">
+                                <div><div class="line-title">Müşteriden Alınan Tutar</div><div class="line-desc">${paymentDesc}</div></div>
+                                <div class="text-green">+${kasaMoney(paymentAmount)}</div>
+                            </div>
+                            <div class="kasa-line">
+                                <div><div class="line-title">Masraf</div><div class="line-desc">${expenseDescHtml}</div></div>
+                                <div class="text-red">-${kasaMoney(totalExpense)}</div>
+                            </div>
+                            <div class="kasa-line">
+                                <div><div class="line-title">Komisyon</div><div class="line-desc">${commissionDesc}</div></div>
+                                <div class="text-red">-${kasaMoney(commissionAmount)}</div>
+                            </div>
+                            <div class="kasa-line kasa-total-line">
+                                <div>Genel Toplam</div>
+                                <div class="${netClass}">${netTotal >= 0 ? '+' : '-'}${kasaMoney(Math.abs(netTotal))}</div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        grouped.singles.forEach((k) => {
             const amount = parseInt(k.tutar || 0, 10);
             let tClass = amount < 0 ? 'text-red' : 'text-green';
             let tSign = amount > 0 ? '+' : '';
             const source = getKasaSource(k);
             tbody.innerHTML += `
                 <tr>
-                    <td>${k.date || ''}</td>
-                    <td>${k.type || 'Nakit'}</td>
-                    <td>${source}</td>
-                    <td>${k.desc || ''}</td>
+                    <td>${kasaEsc(k.date || '')}</td>
+                    <td>${kasaEsc(k.type || 'Nakit')}</td>
+                    <td>${kasaEsc(source)}</td>
+                    <td>${kasaEsc(k.desc || '')}</td>
                     <td class="${tClass}">${tSign}${amount.toLocaleString('tr-TR')} ₺</td>
                     <td><button class="btn btn-danger btn-small" onclick="deleteKasaHareketi('${k._key}')">Sil</button></td>
                 </tr>
             `;
         });
+    }
+
+    function deleteKasaOdemeGrubu(servisKey, odemeKey) {
+        if(!confirm('Bu ödeme kartını ve bağlı kasa hareketlerini silmek istediğinize emin misiniz?')) return;
+        db.kasa
+            .filter(k => k.servisKey === servisKey && k.odemeKey === odemeKey)
+            .forEach(k => database.ref(`ekzen_db/kasa/${k._key}`).remove());
+        database.ref(`ekzen_db/servisler/${servisKey}/odemeler/${odemeKey}`).remove();
     }
 
     function filterKasa() {
