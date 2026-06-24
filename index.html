@@ -735,11 +735,18 @@
                     <div class="wizard-step" data-step="6">
                         <label for="newServiceDate">Tarih</label>
                         <input type="datetime-local" id="newServiceDate" onchange="autoFinishDateStep()" onkeydown="handleNewServisWizardKey(event)">
-                        <div class="wizard-help">Servis/gidiş tarihini seç. Sonra Kaydı Oluştur.</div>
+                        <div class="wizard-help">Servis/gidiş tarihini seçip İleri de.</div>
+                    </div>
+
+                    <div class="wizard-step" data-step="7">
+                        <label for="newSource">Servis Kaynağı</label>
+                        <select id="newSource" onkeydown="handleNewServisWizardKey(event)">
+                            <option value="">Servis Kaynağı Seçiniz</option>
+                        </select>
+                        <div class="wizard-help">Servisin nereden geldiğini seç. Sonra Kaydı Oluştur.</div>
                     </div>
 
                     <input type="datetime-local" id="newPostponedDate" style="display:none;">
-                    <select id="newSource" style="display:none;"><option value="">Servis Kaynağı Seçiniz</option></select>
                     <select id="newTechnician" style="display:none;"><option value="">Teknisyen Seçiniz</option></select>
 
                     <div class="wizard-buttons">
@@ -914,7 +921,10 @@
         let netKasa = db.kasa.reduce((sum, item) => sum + parseInt(item.tutar || 0), 0);
         let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
         const kasaKalan = document.getElementById('kasaKalanTutar');
-        if(kasaKalan) kasaKalan.innerText = formatKasa;
+        if(kasaKalan) {
+            if(document.getElementById('kasa') && document.getElementById('kasa').classList.contains('active')) updateKasaKalanForSelectedSource();
+            else kasaKalan.innerText = formatKasa;
+        }
         const dashHomeKasa = document.getElementById('dashHomeKasa');
         if(dashHomeKasa) dashHomeKasa.innerText = formatKasa;
     }
@@ -1724,6 +1734,23 @@
         }
     }
 
+    function getKasaBalanceForSelectedSource() {
+        const sourceEl = document.getElementById('kasaSourceFilter');
+        const selectedSource = sourceEl ? sourceEl.value : '';
+        return db.kasa.reduce((sum, item) => {
+            if(selectedSource && getKasaSource(item) !== selectedSource) return sum;
+            return sum + (parseInt(item.tutar || 0, 10) || 0);
+        }, 0);
+    }
+
+    function updateKasaKalanForSelectedSource() {
+        const kasaKalan = document.getElementById('kasaKalanTutar');
+        if(!kasaKalan) return;
+        const net = getKasaBalanceForSelectedSource();
+        kasaKalan.innerText = net.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL';
+        kasaKalan.style.color = net < 0 ? 'var(--danger-red)' : 'var(--success-green)';
+    }
+
     function kasaEsc(val) {
         return String(val ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
     }
@@ -1783,6 +1810,7 @@
         tbody.innerHTML = '';
         const list = getFilteredKasaList();
         updateKasaFilterTotals(list);
+        updateKasaKalanForSelectedSource();
 
         const grouped = getKasaGroupedRows(list);
 
@@ -1877,14 +1905,30 @@
         renderKasa();
     }
 
+    function pickKasaSourcePrompt() {
+        const sources = ['Genel', ...db.kaynaklar];
+        const menu = sources.map((s, i) => `${i + 1}) ${s}`).join('\n');
+        const answer = prompt(`Bu kasa hareketi hangi servis kaynağına işlensin?\n\n${menu}\n\nNumara yazabilir veya kaynak adını yazabilirsiniz:`, '1');
+        if(!answer) return null;
+        const trimmed = answer.trim();
+        const idx = parseInt(trimmed, 10);
+        if(!isNaN(idx) && sources[idx - 1]) return sources[idx - 1];
+        const found = sources.find(s => s.toLocaleLowerCase('tr-TR') === trimmed.toLocaleLowerCase('tr-TR'));
+        if(found) return found;
+        alert('Geçerli bir servis kaynağı seçilmedi.');
+        return null;
+    }
+
     function addKasaHareketiPrompt() {
+        const source = pickKasaSourcePrompt();
+        if(!source) return;
         let desc = prompt("Harcama/Gelir Açıklaması:");
         if(!desc) return;
         let tutar = prompt("Tutar girin (Gider için eksi (-) koyun):");
         if(!tutar) return;
 
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
-        database.ref('ekzen_db/kasa').push({ date: timeStr, type: "Nakit", source: "Genel", desc: desc, tutar: parseInt(tutar) });
+        database.ref('ekzen_db/kasa').push({ date: timeStr, type: "Nakit", source: source, serviceSource: source, desc: desc, tutar: parseInt(tutar) });
     }
 
     function deleteKasaHareketi(key) {
@@ -1903,7 +1947,7 @@
 
 
     let newServisWizardStep = 0;
-    const newServisWizardFieldIds = ['newName', 'newPhone', 'newAddress', 'newCihaz', 'newModel', 'newAriza', 'newServiceDate'];
+    const newServisWizardFieldIds = ['newName', 'newPhone', 'newAddress', 'newCihaz', 'newModel', 'newAriza', 'newServiceDate', 'newSource'];
 
     function showNewServisStep(step) {
         newServisWizardStep = Math.max(0, Math.min(step, newServisWizardFieldIds.length - 1));
@@ -1931,6 +1975,14 @@
                 return false;
             }
         }
+        if(step === 7) {
+            const source = document.getElementById('newSource').value;
+            if(!source) {
+                alert('Servis kaynağı seçmelisiniz.');
+                document.getElementById('newSource').focus();
+                return false;
+            }
+        }
         return true;
     }
 
@@ -1955,9 +2007,9 @@
     }
 
     function autoFinishDateStep() {
-        // Tarih seçilince kayda hazır hale getirir; kullanıcı Kaydı Oluştur'a basar.
-        const saveBtn = document.getElementById('newServisSaveBtn');
-        if(saveBtn) saveBtn.focus();
+        // Tarih seçilince bir sonraki adım olan servis kaynağına geçmeye hazır hale getirir.
+        const nextBtn = document.getElementById('newServisNextBtn');
+        if(nextBtn) nextBtn.focus();
     }
 
     function openNewServisModal() {
@@ -2023,6 +2075,11 @@
         if(!name) {
             alert("Müşteri adı zorunludur.");
             document.getElementById('newName').focus();
+            return;
+        }
+        if(!source) {
+            alert("Servis kaynağı seçmelisiniz.");
+            showNewServisStep(7);
             return;
         }
 
