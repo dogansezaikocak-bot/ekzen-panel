@@ -523,7 +523,7 @@
                 <div class="stat-card"><h3>Yarın Servis Adedi</h3><div class="value" id="dashYarin">0</div></div>
             </div>
 
-            <div class="dashboard-services-panel">
+            <div class="dashboard-services-panel" id="dashboardFilterBlock">
                 <div class="dashboard-services-header">
                     <h2>Servis Filtreleme</h2>
                     <button class="service-tab" id="filterToggleButton" onclick="toggleFilterPanel()">🔍 Filtrele</button>
@@ -584,12 +584,13 @@
         <div id="servisler" class="content-area">
             <div class="service-shell">
                 <div class="service-tabs">
-                    <button class="service-tab primary" onclick="openNewServisModal()">✎ Yeni Servis Ekle</button>
-                    <button class="service-tab" id="searchAllServicesButton" onclick="searchAllServicesPrompt()">🔎 Ara</button>
-                    <button class="service-tab" id="todayServicesButton" onclick="showTodayServices()">➤ Bugün</button>
-                    <button class="service-tab" id="tomorrowServicesButton" onclick="showTomorrowServices()">☀️ Yarın</button>
-                    <button class="service-tab" id="openJobsButton" onclick="showOpenJobs()">🟦 Açık İşler</button>
-                    <button class="service-tab" id="allServicesButton" onclick="showAllServices()">📋 Tüm Kayıtlar</button>
+                    <button class="service-tab primary" id="newServiceTabButton" onclick="openNewServisModal()">✎ Yeni Servis Kaydı</button>
+                    <button class="service-tab admin-service-tab" id="searchAllServicesButton" onclick="searchAllServicesPrompt()">🔎 Ara</button>
+                    <button class="service-tab admin-service-tab" id="todayServicesButton" onclick="showTodayServices()">➤ Bugün</button>
+                    <button class="service-tab admin-service-tab" id="tomorrowServicesButton" onclick="showTomorrowServices()">☀️ Yarın</button>
+                    <button class="service-tab" id="openJobsButton" onclick="showOpenJobs()">🟦 Açık Fişler</button>
+                    <button class="service-tab" id="completedServicesButton" onclick="showCompletedServices()">✅ İşlem Tamam</button>
+                    <button class="service-tab admin-service-tab" id="allServicesButton" onclick="showAllServices()">📋 Tüm Kayıtlar</button>
                 </div>
                 <div class="service-layout filter-closed" id="serviceLayout">
                     <main class="service-list-panel">
@@ -716,7 +717,7 @@
                     </div>
                 </div>
 
-                <div class="section-box">
+                <div class="section-box" id="quickActionsBox">
                     <div class="section-title">HIZLI İŞLEMLER</div>
                     <div class="quick-action-row">
                         <button class="btn btn-whatsapp" onclick="openCustomerWhatsApp()">💬 WhatsApp</button>
@@ -735,11 +736,11 @@
                     </div>
                 </div>
 
-                <div class="section-box" style="background:#fffde7; border-color:#fff59d;">
+                <div class="section-box" id="serviceStageBox" style="background:#fffde7; border-color:#fff59d;">
                     <span style="font-weight:bold; font-size:13px;">Servis Durumu: </span>
                     <span id="mCurrentStatus" class="status-badge"></span>
                     
-                    <span style="font-weight:bold; font-size:13px; margin-left:20px;">» Yapılacak İşlemi Seçiniz:</span>
+                    <span id="stageActionLabel" style="font-weight:bold; font-size:13px; margin-left:20px;">» Yapılacak İşlemi Seçiniz:</span>
                     <select id="actionSelect" onchange="handleAşamaEkle(this.value)" style="padding:4px; font-size:12px; border-radius:4px;"></select>
 
                     <div id="stageDetailPanel" class="stage-detail-panel">
@@ -771,7 +772,7 @@
                 </div>
 
                 <div class="section-box">
-                    <div class="section-title">PARA HAREKETLERİ <button class="btn btn-green btn-small" onclick="openPaymentModal()">Ödeme Ekle</button></div>
+                    <div class="section-title">PARA HAREKETLERİ <button id="paymentAddButton" class="btn btn-green btn-small" onclick="openPaymentModal()">Ödeme Ekle</button></div>
                     <div id="paraHistoryContainer"></div>
                 </div>
 
@@ -1018,8 +1019,28 @@
             const onclick = el.getAttribute('onclick') || '';
             if(onclick.includes("'ayarlar'")) el.style.display = admin ? '' : 'none';
         });
-        // Servis ekleme sadece yöneticiye açık.
-        document.querySelectorAll('button[onclick="openNewServisModal()"], button[onclick="openRepeatServisFromActiveCustomer()"], button[onclick^="openRepeatServisByKey"]').forEach(el => el.style.display = admin ? '' : 'none');
+        // Servis ekleme yöneticiye ve kaynak kullanıcılarına açık; tekrar servis açma sadece yöneticiye açık.
+        document.querySelectorAll('button[onclick="openNewServisModal()"]') .forEach(el => el.style.display = (admin || isPartnerUser()) ? '' : 'none');
+        document.querySelectorAll('button[onclick="openRepeatServisFromActiveCustomer()"], button[onclick^="openRepeatServisByKey"]').forEach(el => el.style.display = admin ? '' : 'none');
+        // Kaynak kullanıcılarında servis listesi üst barı sadeleştirilir.
+        document.querySelectorAll('.admin-service-tab').forEach(el => el.style.display = admin ? '' : 'none');
+        const completedBtn = document.getElementById('completedServicesButton');
+        if(completedBtn) completedBtn.style.display = isPartnerUser() ? '' : 'none';
+        const openJobsBtn = document.getElementById('openJobsButton');
+        if(openJobsBtn) openJobsBtn.innerText = isPartnerUser() ? '🟦 Açık Fişler' : '🟦 Açık Fişler';
+        // Ana sayfa filtreleme kaynak kullanıcılarında görünmez.
+        const dashboardFilterBlock = document.getElementById('dashboardFilterBlock');
+        if(dashboardFilterBlock) dashboardFilterBlock.style.display = admin ? '' : 'none';
+        // Fiş detayında kaynak kullanıcıları sadece bilgi görüntüler; durum/ödeme/hızlı işlem yapamaz.
+        ['quickActionsBox'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = admin ? '' : 'none'; });
+        const stageActionLabel = document.getElementById('stageActionLabel');
+        if(stageActionLabel) stageActionLabel.style.display = admin ? '' : 'none';
+        const actionSelect = document.getElementById('actionSelect');
+        if(actionSelect) actionSelect.style.display = admin ? '' : 'none';
+        const stagePanel = document.getElementById('stageDetailPanel');
+        if(stagePanel && !admin) stagePanel.style.display = 'none';
+        const paymentAddButton = document.getElementById('paymentAddButton');
+        if(paymentAddButton) paymentAddButton.style.display = admin ? '' : 'none';
         // Kasa ekleme/silme sadece yöneticiye açık.
         document.querySelectorAll('button[onclick="addKasaHareketiPrompt()"]').forEach(el => el.style.display = admin ? '' : 'none');
         document.querySelectorAll('button[onclick^="deleteKasa"], button[onclick^="deleteKasaOdemeGrubu"]').forEach(el => el.style.display = admin ? '' : 'none');
@@ -1176,7 +1197,7 @@
         element.classList.add('active');
         
         if(tabId === 'dashboard') { renderServisler(); filterServisler(); }
-        if(tabId === 'servisler') { renderServisler(); filterServisler(); }
+        if(tabId === 'servisler') { if(isPartnerUser() && (activeServiceTab === 'all' || activeServiceTab === 'today' || activeServiceTab === 'tomorrow')) activeServiceTab = 'open'; renderServisler(); filterServisler(); }
         if(tabId === 'kasa') renderKasa();
         if(tabId === 'ayarlar') renderAyarlar();
     }
@@ -1425,6 +1446,12 @@
 
     function showOpenJobs() {
         activeServiceTab = 'open';
+        clearFilters(false);
+        filterServisler();
+    }
+
+    function showCompletedServices() {
+        activeServiceTab = 'completed';
         clearFilters(false);
         filterServisler();
     }
@@ -1754,6 +1781,7 @@
     }
 
     function saveStageDetailForm() {
+        if(!requireAdmin('Bu kullanıcı servis durumunu değiştiremez.')) return;
         const allowedServis = requireVisibleActiveServis();
         if(!allowedServis) return;
         if(!activeServisKey) return;
@@ -1815,6 +1843,7 @@
     }
 
     function openPaymentModal() {
+        if(!requireAdmin('Bu kullanıcı ödeme ekleyemez.')) return;
         const allowedServis = requireVisibleActiveServis();
         if(!allowedServis) return;
         if(!activeServisKey) return;
@@ -1833,6 +1862,7 @@
     }
 
     function savePaymentFromForm() {
+        if(!requireAdmin('Bu kullanıcı ödeme ekleyemez.')) return;
         const allowedServis = requireVisibleActiveServis();
         if(!allowedServis) return;
         let tutar = parseInt(document.getElementById('payAmount').value, 10) || 0;
@@ -2368,13 +2398,13 @@
     }
 
     function openNewServisModal() {
-        if(!requireAdmin('Bu kullanıcı yeni servis kaydı açamaz.')) return;
+        if(!(isAdminUser() || isPartnerUser())) { alert('Bu kullanıcı yeni servis kaydı açamaz.'); return; }
         document.getElementById('newName').value = '';
         document.getElementById('newPhone').value = '';
         document.getElementById('newAddress').value = '';
         document.getElementById('newServiceDate').value = '';
         document.getElementById('newPostponedDate').value = '';
-        document.getElementById('newSource').value = db.kaynaklar[0] || 'Saha';
+        document.getElementById('newSource').value = isPartnerUser() ? getUserSource() : (db.kaynaklar[0] || 'Saha');
         document.getElementById('newTechnician').value = '';
         document.getElementById('newCihaz').value = '';
         document.getElementById('newModel').value = '';
@@ -2418,13 +2448,13 @@
     }
 
     function saveNewServisFromForm() {
-        if(!requireAdmin('Bu kullanıcı yeni servis kaydı açamaz.')) return;
+        if(!(isAdminUser() || isPartnerUser())) { alert('Bu kullanıcı yeni servis kaydı açamaz.'); return; }
         let name = document.getElementById('newName').value.trim();
         let phone = document.getElementById('newPhone').value.trim();
         let address = document.getElementById('newAddress').value.trim();
         let serviceDate = document.getElementById('newServiceDate').value;
         let postponedDate = document.getElementById('newPostponedDate').value;
-        let source = document.getElementById('newSource').value || (db.kaynaklar[0] || 'Saha');
+        let source = isPartnerUser() ? getUserSource() : (document.getElementById('newSource').value || (db.kaynaklar[0] || 'Saha'));
         let technician = document.getElementById('newTechnician').value || '';
         let cihaz = document.getElementById('newCihaz').value.trim();
         let model = document.getElementById('newModel').value.trim();
@@ -2681,6 +2711,7 @@
             if(activeServiceTab === 'dayEnd') match = match && getServicePlanDateKey(s) === getLocalDateKey(0) && isNewServiceRecord(s);
             if(activeServiceTab === 'new') match = match && isNewServiceRecord(s);
             if(activeServiceTab === 'open') match = match && isOpenJobRecord(s);
+            if(activeServiceTab === 'completed') match = match && normalizeText(s.status || '').includes('İŞLEM TAMAM');
             if(activeServiceTab === 'future') match = match && getServicePlanDateKey(s) > getLocalDateKey(0);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
             if(activeServiceTab === 'planlama') match = match && !!(s.serviceDate || s.postponedDate);
