@@ -382,12 +382,110 @@
             .wizard-buttons .btn, .wizard-buttons .right-buttons { width: 100%; justify-content: center; }
             .wizard-buttons .right-buttons { display: flex; flex-direction: column; }
         }
+
+
+        /* ŞİFRELİ GİRİŞ EKRANI */
+        body.auth-locked .sidebar,
+        body.auth-locked .main-wrapper {
+            filter: blur(2px);
+            pointer-events: none;
+            user-select: none;
+        }
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.72);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            padding: 20px;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+        .login-card-header {
+            background: var(--main-blue);
+            color: #fff;
+            padding: 22px;
+            text-align: center;
+        }
+        .login-card-header .login-logo {
+            width: 58px;
+            height: 58px;
+            border-radius: 14px;
+            background: #fff;
+            color: var(--main-blue);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 21px;
+            margin-bottom: 10px;
+        }
+        .login-card-header h2 { font-size: 20px; margin-bottom: 4px; }
+        .login-card-header p { font-size: 12px; opacity: .9; }
+        .login-card-body { padding: 20px; }
+        .login-card-body label { display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:7px; }
+        .login-card-body input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+        .login-card-body input[type="password"]:focus { border-color: var(--main-blue); box-shadow: 0 0 0 3px rgba(0,102,178,.12); }
+        .remember-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #475569;
+        }
+        .login-error { min-height: 18px; color: var(--danger-red); font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+        .login-button {
+            width: 100%;
+            justify-content: center;
+            padding: 12px 16px;
+            font-size: 14px;
+            border-radius: 8px;
+        }
+
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
-<body>
+<body class="auth-locked">
+
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <div class="login-card-header">
+                <div class="login-logo">ET</div>
+                <h2>Ekzen Teknik</h2>
+                <p>Servis takip paneline giriş</p>
+            </div>
+            <div class="login-card-body">
+                <label for="loginPasswordInput">Şifre</label>
+                <input type="password" id="loginPasswordInput" placeholder="Panel şifresini girin" autocomplete="current-password" onkeydown="if(event.key==='Enter') loginPanel()">
+                <div class="remember-row">
+                    <input type="checkbox" id="rememberLogin" checked>
+                    <span>Bu cihazda girişimi hatırla</span>
+                </div>
+                <div class="login-error" id="loginError"></div>
+                <button class="btn btn-blue login-button" onclick="loginPanel()">🔐 Giriş Yap</button>
+            </div>
+        </div>
+    </div>
+
 
     <div class="sidebar">
         <div class="sidebar-brand">ET</div>
@@ -400,7 +498,7 @@
     <div class="main-wrapper">
         <div class="navbar">
             <div class="navbar-brand">☰ &nbsp; Ekzen Teknik</div>
-            <div class="user-profile">👤 <span><strong>Doğan Sezai Koçak</strong><small>Patron</small></span> | <span style="cursor:pointer;" onclick="alert('Çıkış yapıldı')">⏻ Çıkış</span></div>
+            <div class="user-profile">👤 <span><strong>Doğan Sezai Koçak</strong><small>Patron</small></span> | <span style="cursor:pointer;" onclick="logoutPanel()">⏻ Çıkış</span></div>
         </div>
 
         <div id="dashboard" class="content-area active">
@@ -817,6 +915,56 @@
     </div>
 
 <script>
+
+    // Basit panel şifresi. Şifreyi değiştirmek için aşağıdaki değeri değiştirin.
+    const EKZEN_PANEL_PASSWORD = "2580";
+
+    function checkPanelLogin() {
+        const remembered = localStorage.getItem('ekzen_panel_login') === 'ok';
+        const sessionOk = sessionStorage.getItem('ekzen_panel_login') === 'ok';
+        if (remembered || sessionOk) {
+            document.body.classList.remove('auth-locked');
+            const overlay = document.getElementById('loginOverlay');
+            if (overlay) overlay.style.display = 'none';
+        } else {
+            document.body.classList.add('auth-locked');
+            const overlay = document.getElementById('loginOverlay');
+            if (overlay) overlay.style.display = 'flex';
+            setTimeout(() => {
+                const input = document.getElementById('loginPasswordInput');
+                if (input) input.focus();
+            }, 100);
+        }
+    }
+
+    function loginPanel() {
+        const input = document.getElementById('loginPasswordInput');
+        const remember = document.getElementById('rememberLogin');
+        const error = document.getElementById('loginError');
+        const password = (input && input.value ? input.value : '').trim();
+        if (password === EKZEN_PANEL_PASSWORD) {
+            if (remember && remember.checked) {
+                localStorage.setItem('ekzen_panel_login', 'ok');
+            } else {
+                sessionStorage.setItem('ekzen_panel_login', 'ok');
+            }
+            if (input) input.value = '';
+            if (error) error.innerText = '';
+            checkPanelLogin();
+        } else {
+            if (error) error.innerText = 'Şifre hatalı. Tekrar deneyin.';
+            if (input) { input.value = ''; input.focus(); }
+        }
+    }
+
+    function logoutPanel() {
+        localStorage.removeItem('ekzen_panel_login');
+        sessionStorage.removeItem('ekzen_panel_login');
+        checkPanelLogin();
+    }
+
+    document.addEventListener('DOMContentLoaded', checkPanelLogin);
+
     // Firebase Yapılandırması
     const firebaseConfig = {
         apiKey: "AIzaSyArRO3GilYemYHX8sJdzNqv-uG7V6LsskQ",
