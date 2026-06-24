@@ -764,8 +764,28 @@
                             </select>
                         </div>
                         <div class="form-field full">
-                            <label for="payNote">Açıklama</label>
-                            <input type="text" id="payNote" placeholder="Örn: Kapora, tam ödeme, parça ücreti...">
+                            <label for="payNote">Ödeme Açıklaması</label>
+                            <input type="text" id="payNote" placeholder="Örn: Kapora, tam ödeme, işçilik ücreti...">
+                        </div>
+                        <div class="form-field full" style="border-top:1px solid #e5e7eb; padding-top:12px; margin-top:4px;">
+                            <strong style="color:var(--danger-red); font-size:13px;">Kasadan Düşülecek Giderler</strong>
+                            <div style="font-size:12px; color:#666; margin-top:4px;">Malzeme veya diğer gider yazarsan kasaya otomatik eksi bakiye olarak işler.</div>
+                        </div>
+                        <div class="form-field">
+                            <label for="materialExpenseAmount">Malzeme Tutarı (TL)</label>
+                            <input type="number" id="materialExpenseAmount" min="0" step="1" placeholder="Örn: 250">
+                        </div>
+                        <div class="form-field">
+                            <label for="materialExpenseNote">Malzeme Açıklaması</label>
+                            <input type="text" id="materialExpenseNote" placeholder="Örn: Pompa, kart, sensör...">
+                        </div>
+                        <div class="form-field">
+                            <label for="otherExpenseAmount">Diğer Gider Tutarı (TL)</label>
+                            <input type="number" id="otherExpenseAmount" min="0" step="1" placeholder="Örn: 100">
+                        </div>
+                        <div class="form-field">
+                            <label for="otherExpenseNote">Diğer Gider Açıklaması</label>
+                            <input type="text" id="otherExpenseNote" placeholder="Örn: Yol, otopark, kapora iade...">
                         </div>
                     </div>
                     <div class="form-actions">
@@ -1222,15 +1242,33 @@
             </div>
         `).join('') : '';
 
-        paraCont.innerHTML = s.odemeler ? Object.keys(s.odemeler).map(k => `
-            <div class="inner-row">
-                <div><strong>${s.odemeler[k].text}</strong> (${s.odemeler[k].type || 'Nakit'})</div>
-                <div class="text-green" style="display:flex; align-items:center; gap:10px;">
-                    ${s.odemeler[k].tutar} TL 
-                    <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('odemeler', '${k}')">✕</span>
+        paraCont.innerHTML = s.odemeler ? Object.keys(s.odemeler).map(k => {
+            const odeme = s.odemeler[k] || {};
+            const giderler = odeme.giderler || {};
+            let giderHtml = '';
+            if(giderler.malzeme && parseInt(giderler.malzeme.tutar || 0, 10) > 0) {
+                giderHtml += `<div class="inner-row" style="border-left-color:var(--danger-red); margin-left:12px;">
+                    <div><strong>Malzeme Gideri</strong> - ${giderler.malzeme.desc || ''}</div>
+                    <div class="text-red">-${parseInt(giderler.malzeme.tutar || 0, 10).toLocaleString('tr-TR')} TL</div>
+                </div>`;
+            }
+            if(giderler.diger && parseInt(giderler.diger.tutar || 0, 10) > 0) {
+                giderHtml += `<div class="inner-row" style="border-left-color:var(--danger-red); margin-left:12px;">
+                    <div><strong>Diğer Gider</strong> - ${giderler.diger.desc || ''}</div>
+                    <div class="text-red">-${parseInt(giderler.diger.tutar || 0, 10).toLocaleString('tr-TR')} TL</div>
+                </div>`;
+            }
+            return `
+                <div class="inner-row">
+                    <div><strong>${odeme.text || 'Ödeme'}</strong> (${odeme.type || 'Nakit'})</div>
+                    <div class="text-green" style="display:flex; align-items:center; gap:10px;">
+                        ${parseInt(odeme.tutar || 0, 10).toLocaleString('tr-TR')} TL 
+                        <span style="color:var(--danger-red); cursor:pointer; font-weight:bold;" onclick="deleteHistoryItem('odemeler', '${k}')">✕</span>
+                    </div>
                 </div>
-            </div>
-        `).join('') : '';
+                ${giderHtml}
+            `;
+        }).join('') : '';
 
         notCont.innerHTML = s.notlar ? Object.keys(s.notlar).map(k => `
             <div class="inner-row">
@@ -1248,8 +1286,14 @@
         const s = db.servisler.find(item => item._key === activeServisKey);
         const item = s && s[childNode] ? s[childNode][itemKey] : null;
 
-        if(childNode === 'odemeler' && item && item.kasaKey) {
-            database.ref(`ekzen_db/kasa/${item.kasaKey}`).remove();
+        if(childNode === 'odemeler' && item) {
+            if(item.kasaKey) database.ref(`ekzen_db/kasa/${item.kasaKey}`).remove();
+            if(item.giderler) {
+                Object.keys(item.giderler).forEach(giderKey => {
+                    const gider = item.giderler[giderKey];
+                    if(gider && gider.kasaKey) database.ref(`ekzen_db/kasa/${gider.kasaKey}`).remove();
+                });
+            }
         }
 
         database.ref(`ekzen_db/servisler/${activeServisKey}/${childNode}/${itemKey}`).remove();
@@ -1376,6 +1420,10 @@
         document.getElementById('payAmount').value = '';
         document.getElementById('payType').value = 'Nakit';
         document.getElementById('payNote').value = '';
+        document.getElementById('materialExpenseAmount').value = '';
+        document.getElementById('materialExpenseNote').value = '';
+        document.getElementById('otherExpenseAmount').value = '';
+        document.getElementById('otherExpenseNote').value = '';
         document.getElementById('paymentModal').style.display = 'flex';
         setTimeout(() => document.getElementById('payAmount').focus(), 100);
     }
@@ -1385,12 +1433,16 @@
     }
 
     function savePaymentFromForm() {
-        let tutar = parseInt(document.getElementById('payAmount').value, 10);
+        let tutar = parseInt(document.getElementById('payAmount').value, 10) || 0;
         let type = document.getElementById('payType').value;
         let note = document.getElementById('payNote').value.trim();
+        let materialAmount = parseInt(document.getElementById('materialExpenseAmount').value, 10) || 0;
+        let materialNote = document.getElementById('materialExpenseNote').value.trim();
+        let otherAmount = parseInt(document.getElementById('otherExpenseAmount').value, 10) || 0;
+        let otherNote = document.getElementById('otherExpenseNote').value.trim();
 
-        if(!tutar || tutar <= 0) {
-            alert("Lütfen geçerli bir ödeme tutarı girin.");
+        if(tutar <= 0 && materialAmount <= 0 && otherAmount <= 0) {
+            alert("Lütfen ödeme, malzeme gideri veya diğer gider için en az bir tutar girin.");
             document.getElementById('payAmount').focus();
             return;
         }
@@ -1400,25 +1452,69 @@
         if(!s) return;
 
         const odemeRef = database.ref(`ekzen_db/servisler/${activeServisKey}/odemeler`).push();
-        const kasaRef = database.ref('ekzen_db/kasa').push();
-        const aciklama = note || "Servis Ödemesi";
+        const aciklama = note || (tutar > 0 ? "Servis Ödemesi" : "Gider Kaydı");
+        let paymentKasaKey = '';
+        let giderler = {};
+
+        if(tutar > 0) {
+            const kasaRef = database.ref('ekzen_db/kasa').push();
+            paymentKasaKey = kasaRef.key;
+            kasaRef.set({
+                date: timeStr,
+                type: type,
+                desc: `${aciklama}: No #${s.id} - ${s.name}`,
+                tutar: tutar,
+                servisKey: activeServisKey,
+                odemeKey: odemeRef.key,
+                serviceSource: s.source || 'Saha'
+            });
+        }
+
+        if(materialAmount > 0) {
+            const materialRef = database.ref('ekzen_db/kasa').push();
+            giderler.malzeme = {
+                tutar: materialAmount,
+                desc: materialNote || 'Malzeme gideri',
+                kasaKey: materialRef.key
+            };
+            materialRef.set({
+                date: timeStr,
+                type: 'Malzeme',
+                desc: `Malzeme Gideri: ${giderler.malzeme.desc} | Servis No #${s.id} - ${s.name}`,
+                tutar: -Math.abs(materialAmount),
+                servisKey: activeServisKey,
+                odemeKey: odemeRef.key,
+                giderType: 'malzeme',
+                serviceSource: s.source || 'Saha'
+            });
+        }
+
+        if(otherAmount > 0) {
+            const otherRef = database.ref('ekzen_db/kasa').push();
+            giderler.diger = {
+                tutar: otherAmount,
+                desc: otherNote || 'Diğer gider',
+                kasaKey: otherRef.key
+            };
+            otherRef.set({
+                date: timeStr,
+                type: 'Diğer',
+                desc: `Diğer Gider: ${giderler.diger.desc} | Servis No #${s.id} - ${s.name}`,
+                tutar: -Math.abs(otherAmount),
+                servisKey: activeServisKey,
+                odemeKey: odemeRef.key,
+                giderType: 'diger',
+                serviceSource: s.source || 'Saha'
+            });
+        }
 
         odemeRef.set({
             time: timeStr,
             text: aciklama,
             type: type,
             tutar: tutar,
-            kasaKey: kasaRef.key
-        });
-
-        kasaRef.set({
-            date: timeStr,
-            type: type,
-            desc: `${aciklama}: No #${s.id} - ${s.name}`,
-            tutar: tutar,
-            servisKey: activeServisKey,
-            odemeKey: odemeRef.key,
-            serviceSource: s.source || 'Saha'
+            kasaKey: paymentKasaKey,
+            giderler: giderler
         });
 
         closePaymentModal();
@@ -1626,7 +1722,11 @@
         if(confirm("Bu kasa hareketini tamamen silmek istediğinize emin misiniz?")) {
             const k = db.kasa.find(item => item._key === key);
             if(k && k.servisKey && k.odemeKey) {
-                database.ref(`ekzen_db/servisler/${k.servisKey}/odemeler/${k.odemeKey}`).remove();
+                if(k.giderType) {
+                    database.ref(`ekzen_db/servisler/${k.servisKey}/odemeler/${k.odemeKey}/giderler/${k.giderType}`).remove();
+                } else {
+                    database.ref(`ekzen_db/servisler/${k.servisKey}/odemeler/${k.odemeKey}`).remove();
+                }
             }
             database.ref(`ekzen_db/kasa/${key}`).remove();
         }
@@ -1811,7 +1911,14 @@
 
         const islemler = s.islemler ? Object.keys(s.islemler).map(k => `<li>${s.islemler[k].time || ''} - ${s.islemler[k].text || ''}</li>`).join('') : '<li>İşlem kaydı yok</li>';
         const notlar = s.notlar ? Object.keys(s.notlar).map(k => `<li>${s.notlar[k].time || ''} - ${s.notlar[k].text || ''}</li>`).join('') : '<li>Not yok</li>';
-        const odemeler = s.odemeler ? Object.keys(s.odemeler).map(k => `<li>${s.odemeler[k].time || ''} - ${s.odemeler[k].text || 'Ödeme'} / ${s.odemeler[k].type || 'Nakit'}: ${parseInt(s.odemeler[k].tutar || 0).toLocaleString('tr-TR')} TL</li>`).join('') : '<li>Ödeme yok</li>';
+        const odemeler = s.odemeler ? Object.keys(s.odemeler).map(k => {
+            const o = s.odemeler[k] || {};
+            const g = o.giderler || {};
+            let rows = `<li>${o.time || ''} - ${o.text || 'Ödeme'} / ${o.type || 'Nakit'}: ${parseInt(o.tutar || 0).toLocaleString('tr-TR')} TL</li>`;
+            if(g.malzeme) rows += `<li>${o.time || ''} - Malzeme Gideri / ${g.malzeme.desc || ''}: -${parseInt(g.malzeme.tutar || 0).toLocaleString('tr-TR')} TL</li>`;
+            if(g.diger) rows += `<li>${o.time || ''} - Diğer Gider / ${g.diger.desc || ''}: -${parseInt(g.diger.tutar || 0).toLocaleString('tr-TR')} TL</li>`;
+            return rows;
+        }).join('') : '<li>Ödeme yok</li>';
         const toplamOdeme = s.odemeler ? Object.keys(s.odemeler).reduce((sum, k) => sum + parseInt(s.odemeler[k].tutar || 0), 0) : 0;
 
         const html = `
