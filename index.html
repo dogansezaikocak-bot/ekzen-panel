@@ -774,7 +774,7 @@
                     <div class="form-grid">
                         <div class="form-field">
                             <label for="payAmount">Alınan Tutar (TL) <span class="required-star">*</span></label>
-                            <input type="number" id="payAmount" min="0" step="1" placeholder="Örn: 750">
+                            <input type="number" id="payAmount" min="0" step="1" placeholder="Örn: 750" oninput="calculateCommissionPreview()">
                         </div>
                         <div class="form-field">
                             <label for="payType">Ödeme Türü</label>
@@ -791,15 +791,20 @@
                         </div>
                         <div class="form-field">
                             <label for="materialExpenseAmount">Masraflar Tutarı (TL)</label>
-                            <input type="number" id="materialExpenseAmount" min="0" step="1" placeholder="Örn: 250">
+                            <input type="number" id="materialExpenseAmount" min="0" step="1" placeholder="Örn: 250" oninput="calculateCommissionPreview()">
                         </div>
                         <div class="form-field">
                             <label for="materialExpenseNote">Masraf Açıklaması</label>
                             <input type="text" id="materialExpenseNote" placeholder="Örn: Pompa, kart, yol, otopark...">
                         </div>
                         <div class="form-field">
-                            <label for="commissionExpenseAmount">Komisyon (TL)</label>
-                            <input type="number" id="commissionExpenseAmount" min="0" step="1" placeholder="Örn: 50">
+                            <label for="commissionExpensePercent">Komisyon (%)</label>
+                            <input type="number" id="commissionExpensePercent" min="0" max="100" step="1" placeholder="Örn: 50" oninput="calculateCommissionPreview()">
+                            <div style="font-size:12px; color:#666; margin-top:4px;">Masraf düştükten sonra kalan tutar üzerinden hesaplanır.</div>
+                        </div>
+                        <div class="form-field">
+                            <label for="commissionExpenseAmount">Hesaplanan Komisyon (TL)</label>
+                            <input type="number" id="commissionExpenseAmount" min="0" step="1" readonly placeholder="Otomatik hesaplanır">
                         </div>
                     </div>
                     <div class="form-actions">
@@ -1482,12 +1487,24 @@
         closeStageDetailForm();
     }
 
+    function calculateCommissionPreview() {
+        const tutar = parseInt(document.getElementById('payAmount').value, 10) || 0;
+        const materialAmount = parseInt(document.getElementById('materialExpenseAmount').value, 10) || 0;
+        const percent = parseFloat(document.getElementById('commissionExpensePercent')?.value) || 0;
+        const kalan = Math.max(tutar - materialAmount, 0);
+        const commissionAmount = percent > 0 ? Math.round(kalan * percent / 100) : 0;
+        const out = document.getElementById('commissionExpenseAmount');
+        if(out) out.value = commissionAmount > 0 ? commissionAmount : '';
+        return commissionAmount;
+    }
+
     function openPaymentModal() {
         if(!activeServisKey) return;
         document.getElementById('payAmount').value = '';
         document.getElementById('payType').value = 'Nakit';
         document.getElementById('materialExpenseAmount').value = '';
         document.getElementById('materialExpenseNote').value = '';
+        document.getElementById('commissionExpensePercent').value = '';
         document.getElementById('commissionExpenseAmount').value = '';
         document.getElementById('paymentModal').style.display = 'flex';
         setTimeout(() => document.getElementById('payAmount').focus(), 100);
@@ -1502,7 +1519,8 @@
         let type = document.getElementById('payType').value;
         let materialAmount = parseInt(document.getElementById('materialExpenseAmount').value, 10) || 0;
         let materialNote = document.getElementById('materialExpenseNote').value.trim();
-        let commissionAmount = parseInt(document.getElementById('commissionExpenseAmount').value, 10) || 0;
+        let commissionPercent = parseFloat(document.getElementById('commissionExpensePercent').value) || 0;
+        let commissionAmount = calculateCommissionPreview();
 
         if(tutar <= 0 && materialAmount <= 0 && commissionAmount <= 0) {
             alert("Lütfen ödeme, masraf veya komisyon için en az bir tutar girin.");
@@ -1556,13 +1574,14 @@
             const commissionRef = database.ref('ekzen_db/kasa').push();
             giderler.komisyon = {
                 tutar: commissionAmount,
-                desc: 'Komisyon',
+                desc: `Komisyon (%${commissionPercent})`,
+                percent: commissionPercent,
                 kasaKey: commissionRef.key
             };
             commissionRef.set({
                 date: timeStr,
                 type: 'Komisyon',
-                desc: `Komisyon | Servis No #${s.id} - ${s.name}`,
+                desc: `Komisyon (%${commissionPercent}) | Servis No #${s.id} - ${s.name}`, 
                 tutar: -Math.abs(commissionAmount),
                 servisKey: activeServisKey,
                 odemeKey: odemeRef.key,
@@ -1577,7 +1596,8 @@
             type: type,
             tutar: tutar,
             kasaKey: paymentKasaKey,
-            giderler: giderler
+            giderler: giderler,
+            commissionPercent: commissionPercent
         });
 
         closePaymentModal();
@@ -1830,7 +1850,7 @@
             if(g.material) expenseDesc.push(`${kasaEsc((g.material.desc || '').replace(/\|.*/, '').trim())}`);
             if(g.other) expenseDesc.push(`${kasaEsc((g.other.desc || '').replace(/\|.*/, '').trim())}`);
             const expenseDescHtml = expenseDesc.length ? expenseDesc.join('<br>') : 'Masraf girilmedi';
-            const commissionDesc = g.commission ? 'Komisyon' : 'Komisyon girilmedi';
+            const commissionDesc = g.commission ? kasaEsc((g.commission.desc || 'Komisyon').replace(/\|.*/, '').trim()) : 'Komisyon girilmedi';
             const paymentDesc = g.payment ? 'Servis Ödemesi' : 'Ödeme girilmedi';
 
             tbody.innerHTML += `
