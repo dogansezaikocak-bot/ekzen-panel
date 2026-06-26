@@ -522,6 +522,7 @@
                 <div class="stat-card"><h3>Yeni Kayıt</h3><div class="value" id="dashYeniKayit">0</div></div>
                 <div class="stat-card"><h3>İşlemde</h3><div class="value" id="dashIslemde">0</div></div>
                 <div class="stat-card"><h3>Ödeme Bekliyor</h3><div class="value" id="dashOdemeBekliyor">0</div></div>
+                <div class="stat-card"><h3>Hesabı Kapat</h3><div class="value" id="dashHesabiKapat">0</div></div>
             </div>
 
             <div class="dashboard-services-panel" id="dashboardFilterBlock" style="display:none;">
@@ -596,6 +597,7 @@
                         <option value="open">Açık Fişler</option>
                         <option value="islemde">İşlemde</option>
                         <option value="odemeBekliyor">Ödeme Bekliyor</option>
+                        <option value="hesabiGoruldu">Hesabı Görüldü</option>
                     </select>
                     <select class="service-tab admin-service-tab" id="serviceSourceQuickFilter" onchange="showSourceServicesFromSelect(this.value)" style="height:36px; min-width:150px;">
                         <option value="">🏷 Servis Kaynağı</option>
@@ -1158,6 +1160,7 @@
     let activeServisKey = null;
     let activeServiceTab = "all";
     let activeSourceServiceFilter = "";
+    let activeStatusServiceFilter = "";
     let sortNewestFirst = true;
 
     // Firebase Canlı Veri Dinleme
@@ -1240,13 +1243,16 @@
         const yeniKayitCount = visibleServislerForDash.filter(isNewServiceRecord).length;
         const islemdeCount = visibleServislerForDash.filter(isIslemdeStatus).length;
         const odemeBekliyorCount = visibleServislerForDash.filter(isOdemeBekliyorStatus).length;
+        const hesabiKapatCount = visibleServislerForDash.filter(isIslemTamamStatus).length;
 
         const dashYeniKayit = document.getElementById('dashYeniKayit');
         const dashIslemde = document.getElementById('dashIslemde');
         const dashOdemeBekliyor = document.getElementById('dashOdemeBekliyor');
+        const dashHesabiKapat = document.getElementById('dashHesabiKapat');
         if(dashYeniKayit) dashYeniKayit.innerText = yeniKayitCount;
         if(dashIslemde) dashIslemde.innerText = islemdeCount;
         if(dashOdemeBekliyor) dashOdemeBekliyor.innerText = odemeBekliyorCount;
+        if(dashHesabiKapat) dashHesabiKapat.innerText = hesabiKapatCount;
         
         let netKasa = getVisibleKasaList().reduce((sum, item) => sum + parseInt(item.tutar || 0), 0);
         let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
@@ -1417,6 +1423,17 @@
         return status.includes('ODEME BEKLIYOR') || status.includes('ODEME');
     }
 
+    function matchesQuickStatusFilter(s, filterName) {
+        if(!filterName) return true;
+        if(filterName === 'new') return isNewServiceRecord(s);
+        if(filterName === 'completed') return isIslemTamamStatus(s);
+        if(filterName === 'open') return isOpenJobRecord(s);
+        if(filterName === 'islemde') return isIslemdeStatus(s);
+        if(filterName === 'odemeBekliyor') return isOdemeBekliyorStatus(s);
+        if(filterName === 'hesabiGoruldu') return isHesabiGorulduStatus(s);
+        return true;
+    }
+
     function isOpenJobRecord(s) {
         return !(isIslemTamamStatus(s) || isHesabiGorulduStatus(s));
     }
@@ -1469,22 +1486,31 @@
         filterServisler();
     }
 
+    function resetQuickServiceFilters() {
+        activeSourceServiceFilter = '';
+        activeStatusServiceFilter = '';
+        const sourceQuick = document.getElementById('serviceSourceQuickFilter');
+        const statusQuick = document.getElementById('serviceStatusQuickFilter');
+        if(sourceQuick) sourceQuick.value = '';
+        if(statusQuick) statusQuick.value = '';
+    }
+
     function showTodayServices() {
         activeServiceTab = 'today';
-        activeSourceServiceFilter = '';
+        resetQuickServiceFilters();
         clearFilters(false);
         filterServisler();
     }
 
     function showTomorrowServices() {
         activeServiceTab = 'tomorrow';
-        activeSourceServiceFilter = '';
+        resetQuickServiceFilters();
         clearFilters(false);
         filterServisler();
     }
 
     function searchAllServicesPrompt() {
-        activeSourceServiceFilter = '';
+        resetQuickServiceFilters();
         const keyword = prompt('Tüm kayıtlarda aranacak kelimeyi yazın:');
         if(keyword === null) return;
         activeServiceTab = 'all';
@@ -1495,31 +1521,33 @@
     }
 
     function showStatusServicesFromSelect(selected) {
-        activeSourceServiceFilter = '';
-        activeServiceTab = selected || 'all';
+        activeStatusServiceFilter = selected || '';
+        activeServiceTab = 'filtered';
         clearFilters(false);
         const statusQuick = document.getElementById('serviceStatusQuickFilter');
+        const sourceQuick = document.getElementById('serviceSourceQuickFilter');
         if(statusQuick) statusQuick.value = selected || '';
+        if(sourceQuick) sourceQuick.value = activeSourceServiceFilter || '';
         filterServisler();
     }
 
     function showNewRecords() {
         activeServiceTab = 'new';
-        activeSourceServiceFilter = '';
+        resetQuickServiceFilters();
         clearFilters(false);
         filterServisler();
     }
 
     function showOpenJobs() {
         activeServiceTab = 'open';
-        activeSourceServiceFilter = '';
+        resetQuickServiceFilters();
         clearFilters(false);
         filterServisler();
     }
 
     function showCompletedServices() {
         activeServiceTab = 'completed';
-        activeSourceServiceFilter = '';
+        resetQuickServiceFilters();
         clearFilters(false);
         filterServisler();
     }
@@ -1532,18 +1560,12 @@
     function showSourceServicesFromSelect(selected) {
         if(!isAdminUser()) { alert('Bu bölüm sadece yönetici içindir.'); return; }
         activeSourceServiceFilter = selected || '';
-        if(!activeSourceServiceFilter) {
-            activeServiceTab = 'all';
-            clearFilters(false);
-            filterServisler();
-            return;
-        }
-        activeServiceTab = 'source';
+        activeServiceTab = 'filtered';
         clearFilters(false);
         const statusQuick = document.getElementById('serviceStatusQuickFilter');
-        if(statusQuick) statusQuick.value = '';
-        const sourceFilter = document.getElementById('filterSource');
-        if(sourceFilter) sourceFilter.value = activeSourceServiceFilter;
+        const sourceQuick = document.getElementById('serviceSourceQuickFilter');
+        if(statusQuick) statusQuick.value = activeStatusServiceFilter || '';
+        if(sourceQuick) sourceQuick.value = activeSourceServiceFilter || '';
         filterServisler();
     }
 
@@ -1553,22 +1575,21 @@
 
     function showOtherDaysServices() {
         activeServiceTab = 'future';
+        resetQuickServiceFilters();
         clearFilters(false);
         filterServisler();
     }
 
     function showAllServices() {
         activeServiceTab = 'all';
-        activeSourceServiceFilter = '';
-        const sourceQuick = document.getElementById('serviceSourceQuickFilter');
-        if(sourceQuick) sourceQuick.value = '';
+        resetQuickServiceFilters();
         clearFilters(false);
         filterServisler();
     }
 
     function showDayEndServices() {
         activeServiceTab = 'dayEnd';
-        activeSourceServiceFilter = '';
+        resetQuickServiceFilters();
         clearFilters(false);
         filterServisler();
     }
@@ -2916,7 +2937,8 @@
             if(activeServiceTab === 'completed') match = match && isIslemTamamStatus(s);
             if(activeServiceTab === 'islemde') match = match && isIslemdeStatus(s);
             if(activeServiceTab === 'odemeBekliyor') match = match && isOdemeBekliyorStatus(s);
-            if(activeServiceTab === 'source') match = match && activeSourceServiceFilter && (s.source || 'Saha') === activeSourceServiceFilter && !isHesabiGorulduStatus(s);
+            if(activeSourceServiceFilter) match = match && (s.source || 'Saha') === activeSourceServiceFilter;
+            if(activeStatusServiceFilter) match = match && matchesQuickStatusFilter(s, activeStatusServiceFilter);
             if(activeServiceTab === 'future') match = match && getServicePlanDateKey(s) > getLocalDateKey(0);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
             if(activeServiceTab === 'planlama') match = match && !!(s.serviceDate || s.postponedDate);
@@ -2955,7 +2977,7 @@
         ['searchKeyword','searchPhone','filterBrand','filterDevice','filterStatus','filterSource','filterTechnician','filterCity','filterDistrict','filterDateStart','filterDateEnd'].forEach(id => {
             const el = document.getElementById(id); if(el) el.value = '';
         });
-        if(resetTab) activeServiceTab = 'all';
+        if(resetTab) { activeServiceTab = 'all'; resetQuickServiceFilters(); }
         if(isPartnerUser()) {
             const fs = document.getElementById('filterSource');
             if(fs) fs.value = getUserSource();
