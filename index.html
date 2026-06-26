@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V34</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V38</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -2966,6 +2966,17 @@
         printWindow.document.open();
         printWindow.document.write(html);
         printWindow.document.close();
+
+        // Bazı tarayıcılarda yeni penceredeki otomatik print tetiklenmeyebilir.
+        // Bu yüzden yazdırmayı ana pencereden de güvenli şekilde çağırıyoruz.
+        setTimeout(() => {
+            try {
+                printWindow.focus();
+                printWindow.print();
+            } catch (err) {
+                alert("Yazdırma ekranı otomatik açılamadı. Açılan servis fişi penceresindeki PDF / Yazdır butonuna basın.");
+            }
+        }, 900);
     }
 
     function openCustomerWhatsAppByKey(key) {
