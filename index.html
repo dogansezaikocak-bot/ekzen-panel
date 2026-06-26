@@ -736,7 +736,7 @@
                     <div class="quick-action-row">
                         <button class="btn btn-whatsapp" onclick="openCustomerWhatsApp()">💬 WhatsApp</button>
                         <button class="btn btn-blue" onclick="callCustomerPhone()">📞 Telefonla Ara</button>
-                        <button class="btn btn-gray" onclick="printServisFisi()">🖨️ Servis Fişi Yazdır</button>
+                        <button class="btn btn-gray" type="button" onclick="printServisFisi()">🖨️ Servis Fişi / PDF</button>
                     </div>
                 </div>
 
@@ -1045,8 +1045,11 @@
         // Ana sayfada filtreleme tamamen kaldırıldı.
         const dashboardFilterBlock = document.getElementById('dashboardFilterBlock');
         if(dashboardFilterBlock) dashboardFilterBlock.style.display = 'none';
-        // Fiş detayında kaynak kullanıcıları sadece bilgi görüntüler; durum/ödeme/hızlı işlem yapamaz.
-        ['quickActionsBox'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = admin ? '' : 'none'; });
+        // Fiş detayında yazdırma butonu tüm yetkili kullanıcılar için görünür.
+        const quickActionsBox = document.getElementById('quickActionsBox');
+        if(quickActionsBox) quickActionsBox.style.display = '';
+        document.querySelectorAll('#quickActionsBox button[onclick="openCustomerWhatsApp()"], #quickActionsBox button[onclick="callCustomerPhone()"]')
+            .forEach(el => el.style.display = admin ? '' : 'none');
         const stageActionLabel = document.getElementById('stageActionLabel');
         if(stageActionLabel) stageActionLabel.style.display = admin ? '' : 'none';
         const actionSelect = document.getElementById('actionSelect');
@@ -1457,7 +1460,7 @@
                     <td><div class="device-name">${s.cihaz || ''}</div><div class="muted-line"><em>${s.model || ''}</em></div><div class="muted-line complaint-line" style="color:var(--danger-red);">${s.ariza || ''}</div></td>
                     <td><span class="status-badge">${s.status || ''}</span><div class="muted-line"><strong>Teknisyen :</strong> ${technician}</div></td>
                     <td><div class="row-actions"><button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Aç / Düzenle</button>
-                            <button class="btn btn-green btn-small" onclick="openRepeatServisByKey('${s._key}')">↻ Tekrar Aç</button><button class="btn btn-blue btn-small" onclick="callCustomerPhoneByKey('${s._key}')">📞 Ara</button><button class="btn btn-gray btn-small" onclick="printServisFisiByKey('${s._key}')">🖨️ Yazdır</button></div></td>
+                            <button class="btn btn-green btn-small" type="button" onclick="openRepeatServisByKey('${s._key}')">↻ Tekrar Aç</button><button class="btn btn-blue btn-small" onclick="callCustomerPhoneByKey('${s._key}')">📞 Ara</button><button class="btn btn-gray btn-small" onclick="printServisFisiByKey('${s._key}')">🖨️ Yazdır</button></div></td>
                 </tr>
             `;
         });
@@ -2961,22 +2964,50 @@
 </body>
 </html>`;
 
-        const printWindow = window.open('', '_blank');
-        if(!printWindow) { alert("Yazdırma penceresi açılamadı. Tarayıcı açılır pencereyi engellemiş olabilir."); return; }
-        printWindow.document.open();
-        printWindow.document.write(html);
-        printWindow.document.close();
+        // Pop-up engeline takılmaması için yazdırma aynı sayfa içinde gizli iframe ile yapılır.
+        try {
+            let oldFrame = document.getElementById('servisFisiPrintFrame');
+            if(oldFrame) oldFrame.remove();
 
-        // Bazı tarayıcılarda yeni penceredeki otomatik print tetiklenmeyebilir.
-        // Bu yüzden yazdırmayı ana pencereden de güvenli şekilde çağırıyoruz.
-        setTimeout(() => {
-            try {
-                printWindow.focus();
-                printWindow.print();
-            } catch (err) {
-                alert("Yazdırma ekranı otomatik açılamadı. Açılan servis fişi penceresindeki PDF / Yazdır butonuna basın.");
-            }
-        }, 900);
+            const frame = document.createElement('iframe');
+            frame.id = 'servisFisiPrintFrame';
+            frame.style.position = 'fixed';
+            frame.style.right = '0';
+            frame.style.bottom = '0';
+            frame.style.width = '0';
+            frame.style.height = '0';
+            frame.style.border = '0';
+            frame.style.opacity = '0';
+            document.body.appendChild(frame);
+
+            const doc = frame.contentWindow.document;
+            doc.open();
+            doc.write(html.replace('<script>setTimeout(() => window.print(), 700);<\/script>', ''));
+            doc.close();
+
+            setTimeout(() => {
+                try {
+                    frame.contentWindow.focus();
+                    frame.contentWindow.print();
+                } catch (err) {
+                    openServisFisiPreview(html);
+                }
+            }, 700);
+        } catch (err) {
+            openServisFisiPreview(html);
+        }
+    }
+
+
+    function openServisFisiPreview(html) {
+        const w = window.open('', '_blank');
+        if(!w) {
+            alert('Yazdırma ekranı açılamadı. Tarayıcı pop-up engelini kapatıp tekrar deneyin.');
+            return;
+        }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
     }
 
     function openCustomerWhatsAppByKey(key) {
