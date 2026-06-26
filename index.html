@@ -521,9 +521,11 @@
                 <div class="stat-card"><h3>Dün Servis Adedi</h3><div class="value" id="dashDun">0</div></div>
                 <div class="stat-card"><h3>Bugün Servis Adedi</h3><div class="value" id="dashBugun">0</div></div>
                 <div class="stat-card"><h3>Yarın Servis Adedi</h3><div class="value" id="dashYarin">0</div></div>
+                <div class="stat-card"><h3>İşlem Tamam</h3><div class="value" id="dashIslemTamam">0</div></div>
+                <div class="stat-card"><h3>Açık Fişler</h3><div class="value" id="dashAcikFisler">0</div></div>
             </div>
 
-            <div class="dashboard-services-panel" id="dashboardFilterBlock">
+            <div class="dashboard-services-panel" id="dashboardFilterBlock" style="display:none;">
                 <div class="dashboard-services-header">
                     <h2>Servis Filtreleme</h2>
                     <button class="service-tab" id="filterToggleButton" onclick="toggleFilterPanel()">🔍 Filtrele</button>
@@ -590,7 +592,9 @@
                     <button class="service-tab admin-service-tab" id="tomorrowServicesButton" onclick="showTomorrowServices()">☀️ Yarın</button>
                     <button class="service-tab" id="openJobsButton" onclick="showOpenJobs()">🟦 Açık Fişler</button>
                     <button class="service-tab" id="completedServicesButton" onclick="showCompletedServices()">✅ İşlem Tamam</button>
-                    <button class="service-tab admin-service-tab" id="sourceServicesButton" onclick="showSourceServicesChooser()">🏷 Servis Kaynağı</button>
+                    <select class="service-tab admin-service-tab" id="serviceSourceQuickFilter" onchange="showSourceServicesFromSelect(this.value)" style="height:36px; min-width:150px;">
+                        <option value="">🏷 Servis Kaynağı</option>
+                    </select>
                     <button class="service-tab admin-service-tab" id="allServicesButton" onclick="showAllServices()">📋 Tüm Kayıtlar</button>
                 </div>
                 <div class="service-layout filter-closed" id="serviceLayout">
@@ -628,10 +632,11 @@
                     <option value="">Tüm Servis Kaynakları</option>
                 </select>
                 <select id="kasaDirectionFilter" onchange="filterKasa()">
-                    <option value="">Giren + Çıkan</option>
-                    <option value="giren">Sadece Giren</option>
-                    <option value="cikan">Sadece Çıkan</option>
+                    <option value="">Tüm Hesaplar</option>
+                    <option value="kapali">Kapalı Hesap</option>
+                    <option value="acik">Açık Hesap</option>
                 </select>
+                <button class="btn btn-green" onclick="printKasaRaporu()">📄 Kasa PDF / Yazdır</button>
                 <button class="btn btn-gray" onclick="clearKasaFilters()">Filtreyi Temizle</button>
                 <div style="font-weight: bold; margin-left: auto; font-size: 15px;">
                     Kasa Kalan Tutar: <span id="kasaKalanTutar" style="color:var(--success-green)">0,00 TL</span>
@@ -1029,9 +1034,9 @@
         if(completedBtn) completedBtn.style.display = (admin || isPartnerUser()) ? '' : 'none';
         const openJobsBtn = document.getElementById('openJobsButton');
         if(openJobsBtn) openJobsBtn.innerText = isPartnerUser() ? '🟦 Açık Fişler' : '🟦 Açık Fişler';
-        // Ana sayfa filtreleme kaynak kullanıcılarında görünmez.
+        // Ana sayfada filtreleme tamamen kaldırıldı.
         const dashboardFilterBlock = document.getElementById('dashboardFilterBlock');
-        if(dashboardFilterBlock) dashboardFilterBlock.style.display = admin ? '' : 'none';
+        if(dashboardFilterBlock) dashboardFilterBlock.style.display = 'none';
         // Fiş detayında kaynak kullanıcıları sadece bilgi görüntüler; durum/ödeme/hızlı işlem yapamaz.
         ['quickActionsBox'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = admin ? '' : 'none'; });
         const stageActionLabel = document.getElementById('stageActionLabel');
@@ -1240,6 +1245,12 @@
         if(dashDun) dashDun.innerText = yesterdayCount;
         if(dashBugun) dashBugun.innerText = todayCount;
         if(dashYarin) dashYarin.innerText = tomorrowCount;
+        const islemTamamCount = visibleServislerForDash.filter(isIslemTamamStatus).length;
+        const acikFisCount = visibleServislerForDash.filter(isOpenJobRecord).length;
+        const dashIslemTamam = document.getElementById('dashIslemTamam');
+        const dashAcikFisler = document.getElementById('dashAcikFisler');
+        if(dashIslemTamam) dashIslemTamam.innerText = islemTamamCount;
+        if(dashAcikFisler) dashAcikFisler.innerText = acikFisCount;
         
         let netKasa = getVisibleKasaList().reduce((sum, item) => sum + parseInt(item.tutar || 0), 0);
         let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
@@ -1261,6 +1272,7 @@
         const newTechSel = document.getElementById('newTechnician');
         const assignTechSel = document.getElementById('assignTechnicianSelect');
         const kasaSourceSel = document.getElementById('kasaSourceFilter');
+        const serviceSourceQuickSel = document.getElementById('serviceSourceQuickFilter');
 
         const oldFilterVal = filterSel ? filterSel.value : '';
         const oldSourceFilterVal = filterSourceSel ? filterSourceSel.value : '';
@@ -1269,6 +1281,7 @@
         const oldNewTechVal = newTechSel ? newTechSel.value : '';
         const oldAssignTechVal = assignTechSel ? assignTechSel.value : '';
         const oldKasaSourceVal = kasaSourceSel ? kasaSourceSel.value : '';
+        const oldServiceQuickSourceVal = serviceSourceQuickSel ? serviceSourceQuickSel.value : '';
         
         if(filterSel) filterSel.innerHTML = '<option value="">Servis Durumu</option>';
         if(modalSel) modalSel.innerHTML = '<option value="">Seçiniz</option>';
@@ -1281,14 +1294,17 @@
         if(filterSourceSel) filterSourceSel.innerHTML = '<option value="">Servis Kaynağı</option>';
         if(newSourceSel) newSourceSel.innerHTML = '<option value="">Servis Kaynağı Seçiniz</option>';
         if(kasaSourceSel) kasaSourceSel.innerHTML = '<option value="">Tüm Servis Kaynakları</option><option value="Genel">Genel / Servissiz Hareket</option>';
+        if(serviceSourceQuickSel) serviceSourceQuickSel.innerHTML = '<option value="">🏷 Servis Kaynağı</option>';
         db.kaynaklar.forEach(k => {
             if(filterSourceSel) filterSourceSel.innerHTML += `<option value="${k}">${k}</option>`;
             if(newSourceSel) newSourceSel.innerHTML += `<option value="${k}">${k}</option>`;
             if(kasaSourceSel) kasaSourceSel.innerHTML += `<option value="${k}">${k}</option>`;
+            if(serviceSourceQuickSel) serviceSourceQuickSel.innerHTML += `<option value="${k}">${k}</option>`;
         });
         if(filterSourceSel) filterSourceSel.value = oldSourceFilterVal;
         if(newSourceSel) newSourceSel.value = oldNewSourceVal || (db.kaynaklar[0] || '');
         if(kasaSourceSel) kasaSourceSel.value = oldKasaSourceVal || '';
+        if(serviceSourceQuickSel) serviceSourceQuickSel.value = oldServiceQuickSourceVal || activeSourceServiceFilter || '';
         if(isPartnerUser()) {
             const userSource = getUserSource();
             if(filterSourceSel) filterSourceSel.value = userSource;
@@ -1367,13 +1383,27 @@
     }
 
     function isClosedServiceRecord(s) {
-        const status = normalizeText(s.status || '');
-        return status.includes('SONLANDIR') || status.includes('KAPANDI') || status.includes('KAPALI') || status.includes('TAMAMLANDI') || status.includes('BİTTİ') || status.includes('BITTI') || status.includes('İPTAL') || status.includes('IPTAL');
+        const status = simplifyStatusText(s.status || '');
+        return status.includes('SONLANDIR') || status.includes('KAPANDI') || status.includes('KAPALI') || status.includes('TAMAMLANDI') || status.includes('BITTI') || status.includes('IPTAL');
+    }
+
+    function simplifyStatusText(value) {
+        return normalizeText(value)
+            .replace(/İ/g, 'I').replace(/İ/g, 'I').replace(/Ğ/g, 'G').replace(/Ü/g, 'U')
+            .replace(/Ö/g, 'O').replace(/Ş/g, 'S').replace(/Ç/g, 'C');
+    }
+
+    function isIslemTamamStatus(s) {
+        return simplifyStatusText(s && s.status ? s.status : s).includes('ISLEM TAMAM');
+    }
+
+    function isHesabiGorulduStatus(s) {
+        const status = simplifyStatusText(s && s.status ? s.status : s);
+        return status.includes('HESABI GORULDU') || status.includes('HESAP GORULDU') || status.includes('HESAP KAPATILDI');
     }
 
     function isOpenJobRecord(s) {
-        const status = normalizeText(s.status || '');
-        return !(status.includes('İŞLEM TAMAM') || status.includes('ISLEM TAMAM') || status.includes('HESAP KAPATILDI'));
+        return !(isIslemTamamStatus(s) || isHesabiGorulduStatus(s));
     }
 
     function renderDashboardNewServices() {
@@ -1464,24 +1494,23 @@
     }
 
     function showSourceServicesChooser() {
+        const sel = document.getElementById('serviceSourceQuickFilter');
+        if(sel) { sel.focus(); return; }
+    }
+
+    function showSourceServicesFromSelect(selected) {
         if(!isAdminUser()) { alert('Bu bölüm sadece yönetici içindir.'); return; }
-        const sources = (db.kaynaklar && db.kaynaklar.length) ? db.kaynaklar : ['Saha'];
-        const menu = sources.map((src, i) => `${i + 1}) ${src}`).join('\n');
-        const answer = prompt(`Hangi servis kaynağının açık kayıtlarını görmek istiyorsun?\n\n${menu}\n\nNumara yazabilir veya kaynak adını yazabilirsin:`, '1');
-        if(answer === null) return;
-        const trimmed = answer.trim();
-        let selected = '';
-        const idx = parseInt(trimmed, 10);
-        if(!isNaN(idx) && sources[idx - 1]) selected = sources[idx - 1];
-        if(!selected) selected = sources.find(src => normalizeText(src) === normalizeText(trimmed)) || '';
-        if(!selected) { alert('Servis kaynağı bulunamadı.'); return; }
+        activeSourceServiceFilter = selected || '';
+        if(!activeSourceServiceFilter) {
+            activeServiceTab = 'all';
+            clearFilters(false);
+            filterServisler();
+            return;
+        }
         activeServiceTab = 'source';
-        activeSourceServiceFilter = selected;
         clearFilters(false);
         const sourceFilter = document.getElementById('filterSource');
-        if(sourceFilter) sourceFilter.value = selected;
-        const sourceBtn = document.getElementById('sourceServicesButton');
-        if(sourceBtn) sourceBtn.innerText = `🏷 ${selected}`;
+        if(sourceFilter) sourceFilter.value = activeSourceServiceFilter;
         filterServisler();
     }
 
@@ -1498,8 +1527,8 @@
     function showAllServices() {
         activeServiceTab = 'all';
         activeSourceServiceFilter = '';
-        const sourceBtn = document.getElementById('sourceServicesButton');
-        if(sourceBtn) sourceBtn.innerText = '🏷 Servis Kaynağı';
+        const sourceQuick = document.getElementById('serviceSourceQuickFilter');
+        if(sourceQuick) sourceQuick.value = '';
         clearFilters(false);
         filterServisler();
     }
@@ -2110,6 +2139,10 @@
         return 'Genel';
     }
 
+    function getKasaLinkedServis(k) {
+        return k && k.servisKey ? (db.servisler.find(s => s._key === k.servisKey) || null) : null;
+    }
+
     function getFilteredKasaList() {
         const start = document.getElementById('kasaDateStart') ? document.getElementById('kasaDateStart').value : '';
         const end = document.getElementById('kasaDateEnd') ? document.getElementById('kasaDateEnd').value : '';
@@ -2124,8 +2157,14 @@
             if(start && (!dateKey || dateKey < start)) return false;
             if(end && (!dateKey || dateKey > end)) return false;
             if(source && itemSource !== source) return false;
-            if(direction === 'giren' && amount <= 0) return false;
-            if(direction === 'cikan' && amount >= 0) return false;
+            if(direction === 'kapali') {
+                const servis = getKasaLinkedServis(k);
+                if(!servis || !isHesabiGorulduStatus(servis)) return false;
+            }
+            if(direction === 'acik') {
+                const servis = getKasaLinkedServis(k);
+                if(!servis || !isIslemTamamStatus(servis)) return false;
+            }
             return true;
         });
     }
@@ -2302,6 +2341,36 @@
             .filter(k => k.servisKey === servisKey && k.odemeKey === odemeKey)
             .forEach(k => database.ref(`ekzen_db/kasa/${k._key}`).remove());
         database.ref(`ekzen_db/servisler/${servisKey}/odemeler/${odemeKey}`).remove();
+    }
+
+    function printKasaRaporu() {
+        const list = getFilteredKasaList();
+        const selectedSource = document.getElementById('kasaSourceFilter')?.value || 'Tüm Servis Kaynakları';
+        const accountType = document.getElementById('kasaDirectionFilter')?.selectedOptions?.[0]?.text || 'Tüm Hesaplar';
+        const start = document.getElementById('kasaDateStart')?.value || '';
+        const end = document.getElementById('kasaDateEnd')?.value || '';
+        const grouped = getKasaGroupedRows(list);
+        let total = list.reduce((sum, k) => sum + (parseInt(k.tutar || 0, 10) || 0), 0);
+        let rows = '';
+        grouped.groups.forEach(g => {
+            const servis = g.servis || {};
+            const paymentAmount = g.payment ? Math.max(g.payment.amount, 0) : 0;
+            const materialAmount = g.material ? Math.abs(g.material.amount) : 0;
+            const otherAmount = g.other ? Math.abs(g.other.amount) : 0;
+            const commissionAmount = g.commission ? Math.abs(g.commission.amount) : 0;
+            const netTotal = paymentAmount - materialAmount - otherAmount - commissionAmount;
+            rows += `<tr><td>${kasaEsc(g.date)}</td><td>${kasaEsc(servis.name || 'Müşteri bilgisi yok')}<br><small>${kasaEsc(g.source)} • Servis #${kasaEsc(servis.id || '')}</small></td><td>Alınan: +${kasaMoney(paymentAmount)}<br>Masraf: -${kasaMoney(materialAmount + otherAmount)}<br>Komisyon: -${kasaMoney(commissionAmount)}</td><td><strong>${netTotal >= 0 ? '+' : '-'}${kasaMoney(Math.abs(netTotal))}</strong></td></tr>`;
+        });
+        grouped.singles.forEach(k => {
+            const amount = parseInt(k.tutar || 0, 10) || 0;
+            rows += `<tr><td>${kasaEsc(k.date || '')}</td><td>${kasaEsc(k.desc || '')}<br><small>${kasaEsc(getKasaSource(k))}</small></td><td>${kasaEsc(k.type || 'Nakit')}</td><td><strong>${amount >= 0 ? '+' : '-'}${kasaMoney(Math.abs(amount))}</strong></td></tr>`;
+        });
+        const win = window.open('', '_blank');
+        if(!win) { alert('PDF penceresi açılamadı. Tarayıcı açılır pencereyi engellemiş olabilir.'); return; }
+        win.document.write(`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Ekzen Teknik Kasa Raporu</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{font-size:22px;margin:0 0 8px} .meta{font-size:12px;color:#555;margin-bottom:14px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #ddd;padding:8px;vertical-align:top}th{background:#f3f6fa;text-align:left}.total{margin-top:14px;font-size:16px;font-weight:bold;text-align:right}@media print{button{display:none}}</style></head><body><h1>Ekzen Teknik Kasa Raporu</h1><div class="meta">Kaynak: ${kasaEsc(selectedSource)} | Hesap: ${kasaEsc(accountType)} | Tarih: ${kasaEsc(start || 'Başlangıç yok')} - ${kasaEsc(end || 'Bitiş yok')} | Oluşturma: ${new Date().toLocaleString('tr-TR')}</div><table><thead><tr><th>Tarih</th><th>Müşteri / Açıklama</th><th>Detay</th><th>Net</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Kayıt bulunamadı.</td></tr>'}</tbody></table><div class="total">Genel Toplam: ${total >= 0 ? '+' : '-'}${kasaMoney(Math.abs(total))}</div><p style="font-size:12px;color:#555;margin-top:18px;">PDF olarak paylaşmak için yazdır ekranından “PDF olarak kaydet” seçeneğini kullanıp dosyayı WhatsApp’tan gönderebilirsiniz.</p><button onclick="window.print()">PDF / Yazdır</button></body></html>`);
+        win.document.close();
+        win.focus();
+        setTimeout(() => win.print(), 500);
     }
 
     function filterKasa() {
@@ -2744,8 +2813,8 @@
             if(activeServiceTab === 'dayEnd') match = match && getServicePlanDateKey(s) === getLocalDateKey(0) && isNewServiceRecord(s);
             if(activeServiceTab === 'new') match = match && isNewServiceRecord(s);
             if(activeServiceTab === 'open') match = match && isOpenJobRecord(s);
-            if(activeServiceTab === 'completed') match = match && normalizeText(s.status || '').includes('İŞLEM TAMAM');
-            if(activeServiceTab === 'source') match = match && activeSourceServiceFilter && (s.source || 'Saha') === activeSourceServiceFilter && !normalizeText(s.status || '').includes('HESAP KAPATILDI');
+            if(activeServiceTab === 'completed') match = match && isIslemTamamStatus(s);
+            if(activeServiceTab === 'source') match = match && activeSourceServiceFilter && (s.source || 'Saha') === activeSourceServiceFilter && !isHesabiGorulduStatus(s);
             if(activeServiceTab === 'future') match = match && getServicePlanDateKey(s) > getLocalDateKey(0);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
             if(activeServiceTab === 'planlama') match = match && !!(s.serviceDate || s.postponedDate);
