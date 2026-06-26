@@ -519,11 +519,9 @@
             </div>
             
             <div class="stats-grid">
-                <div class="stat-card"><h3>Bugün Servis Adedi</h3><div class="value" id="dashBugun">0</div></div>
-                <div class="stat-card"><h3>Yarın Servis Adedi</h3><div class="value" id="dashYarin">0</div></div>
-                <div class="stat-card"><h3>Diğer Günler</h3><div class="value" id="dashDigerGunler">0</div></div>
-                <div class="stat-card"><h3>Açık Hesap</h3><div class="value" id="dashIslemTamam">0</div></div>
-                <div class="stat-card"><h3>Yeni Kayıt</h3><div class="value" id="dashAcikFisler">0</div></div>
+                <div class="stat-card"><h3>Yeni Kayıt</h3><div class="value" id="dashYeniKayit">0</div></div>
+                <div class="stat-card"><h3>İşlemde</h3><div class="value" id="dashIslemde">0</div></div>
+                <div class="stat-card"><h3>Ödeme Bekliyor</h3><div class="value" id="dashOdemeBekliyor">0</div></div>
             </div>
 
             <div class="dashboard-services-panel" id="dashboardFilterBlock" style="display:none;">
@@ -591,9 +589,14 @@
                     <button class="service-tab admin-service-tab" id="searchAllServicesButton" onclick="searchAllServicesPrompt()">🔎 Ara</button>
                     <button class="service-tab admin-service-tab" id="todayServicesButton" onclick="showTodayServices()">➤ Bugün</button>
                     <button class="service-tab admin-service-tab" id="tomorrowServicesButton" onclick="showTomorrowServices()">☀️ Yarın</button>
-                    <button class="service-tab" id="newRecordsButton" onclick="showNewRecords()">🆕 Yeni Kayıt</button>
-                    <button class="service-tab" id="openJobsButton" onclick="showOpenJobs()">🟦 Açık Fişler</button>
-                    <button class="service-tab" id="completedServicesButton" onclick="showCompletedServices()">✅ Açık Hesap</button>
+                    <select class="service-tab" id="serviceStatusQuickFilter" onchange="showStatusServicesFromSelect(this.value)" style="height:36px; min-width:170px;">
+                        <option value="">📌 Servis Durumları</option>
+                        <option value="new">Yeni Kayıt</option>
+                        <option value="completed">Açık Hesap</option>
+                        <option value="open">Açık Fişler</option>
+                        <option value="islemde">İşlemde</option>
+                        <option value="odemeBekliyor">Ödeme Bekliyor</option>
+                    </select>
                     <select class="service-tab admin-service-tab" id="serviceSourceQuickFilter" onchange="showSourceServicesFromSelect(this.value)" style="height:36px; min-width:150px;">
                         <option value="">🏷 Servis Kaynağı</option>
                     </select>
@@ -620,7 +623,7 @@
                             <tbody id="servisTableBody"></tbody>
                         </table>
                         <div class="result-count">Toplam Sonuç Sayısı : <span id="servisResultCount">0</span></div>
-                        <div style="text-align:right; margin-top:18px;"><button class="btn btn-gray" onclick="printServisListesi()">Listeyi Yazdır</button></div>
+
                     </main>
                 </div>
             </div>
@@ -1234,25 +1237,16 @@
         const visibleServislerForDash = getVisibleServisList();
         document.getElementById('dashTotalServis').innerText = visibleServislerForDash.length;
 
-        const todayKey = getLocalDateKey(0);
-        const tomorrowKey = getLocalDateKey(1);
+        const yeniKayitCount = visibleServislerForDash.filter(isNewServiceRecord).length;
+        const islemdeCount = visibleServislerForDash.filter(isIslemdeStatus).length;
+        const odemeBekliyorCount = visibleServislerForDash.filter(isOdemeBekliyorStatus).length;
 
-        const todayCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) === todayKey).length;
-        const tomorrowCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) === tomorrowKey).length;
-        const otherDaysCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) > tomorrowKey).length;
-
-        const dashBugun = document.getElementById('dashBugun');
-        const dashYarin = document.getElementById('dashYarin');
-        const dashDigerGunler = document.getElementById('dashDigerGunler');
-        if(dashBugun) dashBugun.innerText = todayCount;
-        if(dashYarin) dashYarin.innerText = tomorrowCount;
-        if(dashDigerGunler) dashDigerGunler.innerText = otherDaysCount;
-        const islemTamamCount = visibleServislerForDash.filter(isIslemTamamStatus).length;
-        const acikFisCount = visibleServislerForDash.filter(isNewServiceRecord).length;
-        const dashIslemTamam = document.getElementById('dashIslemTamam');
-        const dashAcikFisler = document.getElementById('dashAcikFisler');
-        if(dashIslemTamam) dashIslemTamam.innerText = islemTamamCount;
-        if(dashAcikFisler) dashAcikFisler.innerText = acikFisCount;
+        const dashYeniKayit = document.getElementById('dashYeniKayit');
+        const dashIslemde = document.getElementById('dashIslemde');
+        const dashOdemeBekliyor = document.getElementById('dashOdemeBekliyor');
+        if(dashYeniKayit) dashYeniKayit.innerText = yeniKayitCount;
+        if(dashIslemde) dashIslemde.innerText = islemdeCount;
+        if(dashOdemeBekliyor) dashOdemeBekliyor.innerText = odemeBekliyorCount;
         
         let netKasa = getVisibleKasaList().reduce((sum, item) => sum + parseInt(item.tutar || 0), 0);
         let formatKasa = netKasa.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL";
@@ -1413,6 +1407,16 @@
         return status.includes('HESABI GORULDU') || status.includes('HESAP GORULDU') || status.includes('HESAP KAPATILDI');
     }
 
+    function isIslemdeStatus(s) {
+        const status = simplifyStatusText(s && s.status ? s.status : s);
+        return status.includes('ISLEMDE') || status.includes('ISLEMDE');
+    }
+
+    function isOdemeBekliyorStatus(s) {
+        const status = simplifyStatusText(s && s.status ? s.status : s);
+        return status.includes('ODEME BEKLIYOR') || status.includes('ODEME');
+    }
+
     function isOpenJobRecord(s) {
         return !(isIslemTamamStatus(s) || isHesabiGorulduStatus(s));
     }
@@ -1490,6 +1494,15 @@
         filterServisler();
     }
 
+    function showStatusServicesFromSelect(selected) {
+        activeSourceServiceFilter = '';
+        activeServiceTab = selected || 'all';
+        clearFilters(false);
+        const statusQuick = document.getElementById('serviceStatusQuickFilter');
+        if(statusQuick) statusQuick.value = selected || '';
+        filterServisler();
+    }
+
     function showNewRecords() {
         activeServiceTab = 'new';
         activeSourceServiceFilter = '';
@@ -1527,6 +1540,8 @@
         }
         activeServiceTab = 'source';
         clearFilters(false);
+        const statusQuick = document.getElementById('serviceStatusQuickFilter');
+        if(statusQuick) statusQuick.value = '';
         const sourceFilter = document.getElementById('filterSource');
         if(sourceFilter) sourceFilter.value = activeSourceServiceFilter;
         filterServisler();
@@ -2238,11 +2253,13 @@
             if(source && itemSource !== source) return false;
             if(direction === 'kapali') {
                 const servis = getKasaLinkedServis(k);
-                if(!servis || !isHesabiGorulduStatus(servis)) return false;
+                if(!servis) return !!source;
+                if(!isHesabiGorulduStatus(servis)) return false;
             }
             if(direction === 'acik') {
                 const servis = getKasaLinkedServis(k);
-                if(!servis || !isIslemTamamStatus(servis)) return false;
+                if(!servis) return !!source;
+                if(!isIslemTamamStatus(servis)) return false;
             }
             return true;
         });
@@ -2897,6 +2914,8 @@
             if(activeServiceTab === 'new') match = match && isNewServiceRecord(s);
             if(activeServiceTab === 'open') match = match && isOpenJobRecord(s);
             if(activeServiceTab === 'completed') match = match && isIslemTamamStatus(s);
+            if(activeServiceTab === 'islemde') match = match && isIslemdeStatus(s);
+            if(activeServiceTab === 'odemeBekliyor') match = match && isOdemeBekliyorStatus(s);
             if(activeServiceTab === 'source') match = match && activeSourceServiceFilter && (s.source || 'Saha') === activeSourceServiceFilter && !isHesabiGorulduStatus(s);
             if(activeServiceTab === 'future') match = match && getServicePlanDateKey(s) > getLocalDateKey(0);
             if(activeServiceTab === 'teknisyen') match = match && !!(s.technician || s.teknisyen);
@@ -2950,11 +2969,27 @@
     }
 
     function printServisListesi() {
-        const rows = [...document.querySelectorAll('#servisTableBody tr')].filter(tr => tr.style.display !== 'none').map(tr => tr.innerText.replace(/Aç \/ Düzenle/g,'')).join('\n\n');
-        const printWindow = window.open('', '_blank');
-        if(!printWindow) { alert('Yazdırma penceresi açılamadı.'); return; }
-        printWindow.document.write(`<pre style="font-family:Arial; white-space:pre-wrap; font-size:13px;"><h2>Ekzen Teknik - Servis Listesi / PDF</h2>${rows}</pre><script>window.print();<\/script>`);
-        printWindow.document.close();
+        const visibleRows = [...document.querySelectorAll('#servisTableBody tr')].filter(tr => tr.style.display !== 'none');
+        let rows = '';
+        visibleRows.forEach(tr => {
+            const s = db.servisler.find(item => item._key === tr.dataset.key);
+            if(!s) return;
+            const notes = getServiceNotesSummary(s);
+            rows += `<tr>
+                <td>${escapeHtml(formatServiceListDate(getServiceDisplayDateRaw(s)) || '')}</td>
+                <td><strong>${escapeHtml(s.name || '')}</strong><br><small>${escapeHtml(s.phone || '')}</small><br><small>${escapeHtml(s.address || '')}</small></td>
+                <td>${escapeHtml(s.cihaz || '')}<br><small>${escapeHtml(s.model || '')}</small><br><small>${escapeHtml(s.ariza || '')}</small></td>
+                <td><strong>${escapeHtml(s.status || '')}</strong><br><small>${escapeHtml(s.source || 'Saha')}</small>${notes ? `<br><span style="color:#c62828;">${escapeHtml(notes)}</span>` : ''}</td>
+            </tr>`;
+        });
+        const totalText = document.getElementById('servisResultCount')?.innerText || visibleRows.length;
+        const selectedStatus = document.getElementById('serviceStatusQuickFilter')?.selectedOptions?.[0]?.text || 'Tüm Durumlar';
+        const selectedSource = document.getElementById('serviceSourceQuickFilter')?.selectedOptions?.[0]?.text || 'Tüm Kaynaklar';
+        const win = window.open('', '_blank');
+        if(!win) { alert('PDF penceresi açılamadı. Tarayıcı açılır pencereyi engellemiş olabilir.'); return; }
+        win.document.write(`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Ekzen Teknik Servis Listesi</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{font-size:22px;margin:0 0 8px}.meta{font-size:12px;color:#555;margin-bottom:14px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #ddd;padding:8px;vertical-align:top}th{background:#f3f6fa;text-align:left}.total{margin-top:14px;font-size:16px;font-weight:bold;text-align:right}@media print{button{display:none}}</style></head><body><h1>Ekzen Teknik Servis Listesi</h1><div class="meta">Durum: ${escapeHtml(selectedStatus)} | Kaynak: ${escapeHtml(selectedSource)} | Oluşturma: ${new Date().toLocaleString('tr-TR')}</div><table><thead><tr><th>Tarih</th><th>Müşteri</th><th>Cihaz / Şikayet</th><th>Durum / Kaynak / Not</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Kayıt bulunamadı.</td></tr>'}</tbody></table><div class="total">Toplam Kayıt: ${escapeHtml(totalText)}</div><p style="font-size:12px;color:#555;margin-top:18px;">PDF olarak paylaşmak için yazdır ekranından “PDF olarak kaydet” seçeneğini kullanıp dosyayı WhatsApp’tan gönderebilirsiniz.</p><button onclick="window.print()">PDF / Yazdır</button></body></html>`);
+        win.document.close();
+        setTimeout(() => win.print(), 500);
     }
 
     function closeModal() { 
