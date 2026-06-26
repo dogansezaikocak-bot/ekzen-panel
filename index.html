@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekzen Teknik - Servis Takip Paneli V21 Sıralı Servis Kayıt</title>
+    <title>Ekzen Teknik - Servis Takip Paneli V34</title>
     <style>
         :root {
             --main-blue: #0066b2;
@@ -67,6 +67,7 @@
         
         /* Durum Rozeti */
         .status-badge { padding: 4px 8px; background: #0066b2; color: white; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; }
+        .service-note-preview { margin-top: 7px; color: var(--danger-red); font-size: 12px; font-weight: 700; line-height: 1.35; max-width: 170px; white-space: normal; }
 
         /* Listeler ve Yönetim Grupları */
         .setting-group { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; margin-bottom: 20px; }
@@ -518,11 +519,11 @@
             </div>
             
             <div class="stats-grid">
-                <div class="stat-card"><h3>Dün Servis Adedi</h3><div class="value" id="dashDun">0</div></div>
                 <div class="stat-card"><h3>Bugün Servis Adedi</h3><div class="value" id="dashBugun">0</div></div>
                 <div class="stat-card"><h3>Yarın Servis Adedi</h3><div class="value" id="dashYarin">0</div></div>
-                <div class="stat-card"><h3>İşlem Tamam</h3><div class="value" id="dashIslemTamam">0</div></div>
-                <div class="stat-card"><h3>Açık Fişler</h3><div class="value" id="dashAcikFisler">0</div></div>
+                <div class="stat-card"><h3>Diğer Günler</h3><div class="value" id="dashDigerGunler">0</div></div>
+                <div class="stat-card"><h3>Açık Hesap</h3><div class="value" id="dashIslemTamam">0</div></div>
+                <div class="stat-card"><h3>Yeni Kayıt</h3><div class="value" id="dashAcikFisler">0</div></div>
             </div>
 
             <div class="dashboard-services-panel" id="dashboardFilterBlock" style="display:none;">
@@ -590,12 +591,14 @@
                     <button class="service-tab admin-service-tab" id="searchAllServicesButton" onclick="searchAllServicesPrompt()">🔎 Ara</button>
                     <button class="service-tab admin-service-tab" id="todayServicesButton" onclick="showTodayServices()">➤ Bugün</button>
                     <button class="service-tab admin-service-tab" id="tomorrowServicesButton" onclick="showTomorrowServices()">☀️ Yarın</button>
+                    <button class="service-tab" id="newRecordsButton" onclick="showNewRecords()">🆕 Yeni Kayıt</button>
                     <button class="service-tab" id="openJobsButton" onclick="showOpenJobs()">🟦 Açık Fişler</button>
-                    <button class="service-tab" id="completedServicesButton" onclick="showCompletedServices()">✅ İşlem Tamam</button>
+                    <button class="service-tab" id="completedServicesButton" onclick="showCompletedServices()">✅ Açık Hesap</button>
                     <select class="service-tab admin-service-tab" id="serviceSourceQuickFilter" onchange="showSourceServicesFromSelect(this.value)" style="height:36px; min-width:150px;">
                         <option value="">🏷 Servis Kaynağı</option>
                     </select>
                     <button class="service-tab admin-service-tab" id="allServicesButton" onclick="showAllServices()">📋 Tüm Kayıtlar</button>
+                    <button class="service-tab admin-service-tab" id="printServiceListButton" onclick="printServisListesi()">🖨️ Yazdır / PDF</button>
                 </div>
                 <div class="service-layout filter-closed" id="serviceLayout">
                     <main class="service-list-panel">
@@ -1160,7 +1163,7 @@
         if (data) {
             db.servisler = data.servisler ? Object.keys(data.servisler).map(key => ({ _key: key, ...data.servisler[key] })) : [];
             db.kasa = data.kasa ? Object.keys(data.kasa).map(key => ({ _key: key, ...data.kasa[key] })) : [];
-            db.durumlar = data.durumlar || ["Açık Talep", "Teknisyen Yönlendirildi", "Ertelendi", "Servis Sonlandırıldı"];
+            db.durumlar = data.durumlar || ["Yeni Kayıt", "Teknisyen Yönlendirildi", "İşlem Tamam", "Hesabı Görüldü"];
             if(!db.durumlar.includes("Ertelendi")) db.durumlar.push("Ertelendi");
             db.kaynaklar = data.kaynaklar || ["Saha", "Telefon", "WhatsApp", "Web", "Google", "Referans", "Sedef Teknik", "Korkmaz Teknik"];
             if(!db.kaynaklar.includes("Sedef Teknik")) db.kaynaklar.push("Sedef Teknik");
@@ -1231,22 +1234,21 @@
         const visibleServislerForDash = getVisibleServisList();
         document.getElementById('dashTotalServis').innerText = visibleServislerForDash.length;
 
-        const yesterdayKey = getLocalDateKey(-1);
         const todayKey = getLocalDateKey(0);
         const tomorrowKey = getLocalDateKey(1);
 
-        const yesterdayCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) === yesterdayKey).length;
         const todayCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) === todayKey).length;
         const tomorrowCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) === tomorrowKey).length;
+        const otherDaysCount = visibleServislerForDash.filter(s => getServicePlanDateKey(s) > tomorrowKey).length;
 
-        const dashDun = document.getElementById('dashDun');
         const dashBugun = document.getElementById('dashBugun');
         const dashYarin = document.getElementById('dashYarin');
-        if(dashDun) dashDun.innerText = yesterdayCount;
+        const dashDigerGunler = document.getElementById('dashDigerGunler');
         if(dashBugun) dashBugun.innerText = todayCount;
         if(dashYarin) dashYarin.innerText = tomorrowCount;
+        if(dashDigerGunler) dashDigerGunler.innerText = otherDaysCount;
         const islemTamamCount = visibleServislerForDash.filter(isIslemTamamStatus).length;
-        const acikFisCount = visibleServislerForDash.filter(isOpenJobRecord).length;
+        const acikFisCount = visibleServislerForDash.filter(isNewServiceRecord).length;
         const dashIslemTamam = document.getElementById('dashIslemTamam');
         const dashAcikFisler = document.getElementById('dashAcikFisler');
         if(dashIslemTamam) dashIslemTamam.innerText = islemTamamCount;
@@ -1261,6 +1263,15 @@
         }
         const dashHomeKasa = document.getElementById('dashHomeKasa');
         if(dashHomeKasa) dashHomeKasa.innerText = formatKasa;
+    }
+
+    function isPostponedStatusName(value) {
+        const status = simplifyStatusText(value || '');
+        return status.includes('ERTEL');
+    }
+
+    function getActiveStatusList() {
+        return (db.durumlar || []).filter(d => !isPostponedStatusName(d));
     }
 
     function updateStatusSelectors() {
@@ -1285,7 +1296,7 @@
         
         if(filterSel) filterSel.innerHTML = '<option value="">Servis Durumu</option>';
         if(modalSel) modalSel.innerHTML = '<option value="">Seçiniz</option>';
-        db.durumlar.forEach(d => {
+        getActiveStatusList().forEach(d => {
             if(filterSel) filterSel.innerHTML += `<option value="${d}">${d}</option>`;
             if(modalSel) modalSel.innerHTML += `<option value="${d}">${d}</option>`;
         });
@@ -1479,6 +1490,13 @@
         filterServisler();
     }
 
+    function showNewRecords() {
+        activeServiceTab = 'new';
+        activeSourceServiceFilter = '';
+        clearFilters(false);
+        filterServisler();
+    }
+
     function showOpenJobs() {
         activeServiceTab = 'open';
         activeSourceServiceFilter = '';
@@ -1515,7 +1533,7 @@
     }
 
     function showNewServices() {
-        showOpenJobs();
+        showNewRecords();
     }
 
     function showOtherDaysServices() {
@@ -1540,6 +1558,16 @@
         filterServisler();
     }
 
+    function getServiceNotesSummary(s) {
+        if(!s || !s.notlar) return '';
+        return Object.keys(s.notlar).map(k => s.notlar[k]).filter(Boolean)
+            .sort((a,b) => String(b.time || '').localeCompare(String(a.time || '')))
+            .slice(0, 2)
+            .map(n => (n.text || '').replace(/^Doğan Sezai Koçak:\s*/i, '').trim())
+            .filter(Boolean)
+            .join(' | ');
+    }
+
     function renderServisler() {
         const tbody = document.getElementById('servisTableBody');
         tbody.innerHTML = '';
@@ -1550,6 +1578,8 @@
             const mainDate = formatServiceListDate(getServiceDisplayDateRaw(s));
             const postponed = s.postponedDate ? `<div class="postponed-badge">Ertelenen tarih aktif</div>` : '';
             const source = s.source || 'Saha';
+            const serviceNotes = getServiceNotesSummary(s);
+            const serviceNoteHtml = serviceNotes ? `<div class="service-note-preview">${escapeHtml(serviceNotes)}</div>` : '';
             tbody.innerHTML += `
                 <tr data-key="${s._key}">
                     <td><input type="checkbox"></td>
@@ -1575,6 +1605,7 @@
                     <td>
                         <div class="row-actions">
                             <button class="btn btn-blue btn-small" onclick="openDetailModal('${s._key}')">Aç / Düzenle</button>
+                            ${serviceNoteHtml}
                         </div>
                     </td>
                 </tr>
@@ -1654,30 +1685,76 @@
     }
 
 
+    function toDateTimeLocalValue(value) {
+        const d = parseServiceDateValue(value);
+        if(!d) return '';
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
     function editServisTarihBilgisi() {
         if(!requireAdmin('Bu kullanıcı servis bilgilerini düzenleyemez.')) return;
         const s = db.servisler.find(item => item._key === activeServisKey);
         if(!s) return;
 
-        let newServiceDate = prompt("Servis / Gidiş Tarihi (Örnek: 2026-06-20T18:30):", s.serviceDate || "");
-        if(newServiceDate === null) return;
-        let newPostponedDate = prompt("Ertelenen Tarih (Yoksa boş bırak):", s.postponedDate || "");
-        if(newPostponedDate === null) return;
+        const old = document.getElementById('dateEditOverlay');
+        if(old) old.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'dateEditOverlay';
+        overlay.className = 'modal-overlay';
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+            <div class="modal-box" style="max-width:520px;">
+                <div class="modal-header">
+                    <span>Tarih Düzenle</span>
+                    <span class="modal-close" onclick="document.getElementById('dateEditOverlay').remove()">✕</span>
+                </div>
+                <div class="modal-body">
+                    <div class="section-box">
+                        <div class="form-grid">
+                            <div class="form-field full">
+                                <label>Servis / Gidiş Tarihi</label>
+                                <input type="datetime-local" id="editServiceDatePicker" value="${toDateTimeLocalValue(s.serviceDate || '')}">
+                            </div>
+                            <div class="form-field full">
+                                <label>Değişen / Ertelenen Tarih</label>
+                                <input type="datetime-local" id="editPostponedDatePicker" value="${toDateTimeLocalValue(s.postponedDate || '')}">
+                                <div class="wizard-help">Fiş ertelendiyse veya tarih değiştiyse yeni tarihi buradan seç. Boş bırakırsan ertelenen tarih kaldırılır.</div>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-gray" onclick="document.getElementById('dateEditOverlay').remove()">Vazgeç</button>
+                            <button class="btn btn-green" onclick="saveDatePickerEdit()">Tarihi Kaydet</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        setTimeout(() => {
+            const input = document.getElementById('editServiceDatePicker');
+            if(input) { input.focus(); if(input.showPicker) input.showPicker(); }
+        }, 150);
+    }
 
+    function saveDatePickerEdit() {
+        const serviceInput = document.getElementById('editServiceDatePicker');
+        const postponedInput = document.getElementById('editPostponedDatePicker');
+        const newServiceDate = serviceInput ? serviceInput.value : '';
+        const newPostponedDate = postponedInput ? postponedInput.value : '';
         let updates = {
             serviceDate: newServiceDate.trim(),
             postponedDate: newPostponedDate.trim()
         };
-
         let timeStr = new Date().toLocaleString('tr-TR').substring(0, 16);
         database.ref(`ekzen_db/servisler/${activeServisKey}`).update(updates);
         database.ref(`ekzen_db/servisler/${activeServisKey}/islemler`).push({
             time: timeStr,
-            text: `Sistem: Tarih bilgisi güncellendi | Servis/Gidiş: ${formatDateShort(updates.serviceDate) || 'Yok'} | Ertelenen: ${formatDateShort(updates.postponedDate) || 'Yok'}`
+            text: `Sistem: Tarih bilgisi güncellendi | Servis/Gidiş: ${formatDateShort(updates.serviceDate) || 'Yok'} | Değişen tarih: ${formatDateShort(updates.postponedDate) || 'Yok'}`
         });
-
         document.getElementById('mServiceDate').innerText = formatDateShort(updates.serviceDate) || 'Belirtilmedi';
         document.getElementById('mPostponedDate').innerText = formatDateShort(updates.postponedDate) || 'Yok';
+        const overlay = document.getElementById('dateEditOverlay');
+        if(overlay) overlay.remove();
     }
 
     function assignTeknisyen(val) {
@@ -2031,6 +2108,7 @@
         const listContainer = document.getElementById('statusSettingsList');
         listContainer.innerHTML = '';
         db.durumlar.forEach((d, idx) => {
+            if(isPostponedStatusName(d)) return;
             listContainer.innerHTML += `
                 <div class="custom-list-item">
                     <span>📋 <strong>${d}</strong></span>
@@ -2067,6 +2145,7 @@
         const input = document.getElementById('newStatusInput');
         let val = input.value.trim();
         if(!val) return;
+        if(isPostponedStatusName(val)) { alert("Ertelendi aşaması kaldırıldı. Tarih değişikliklerini Tarih Düzenle bölümünden yapın."); return; }
         if(db.durumlar.includes(val)) { alert("Bu aşama zaten mevcut!"); return; }
         
         db.durumlar.push(val);
@@ -2199,6 +2278,10 @@
         const net = getKasaBalanceForSelectedSource();
         kasaKalan.innerText = net.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL';
         kasaKalan.style.color = net < 0 ? 'var(--danger-red)' : 'var(--success-green)';
+    }
+
+    function escapeHtml(val) {
+        return String(val ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
     }
 
     function kasaEsc(val) {
@@ -2870,7 +2953,7 @@
         const rows = [...document.querySelectorAll('#servisTableBody tr')].filter(tr => tr.style.display !== 'none').map(tr => tr.innerText.replace(/Aç \/ Düzenle/g,'')).join('\n\n');
         const printWindow = window.open('', '_blank');
         if(!printWindow) { alert('Yazdırma penceresi açılamadı.'); return; }
-        printWindow.document.write(`<pre style="font-family:Arial; white-space:pre-wrap; font-size:13px;"><h2>Ekzen Teknik - Servis Listesi</h2>${rows}</pre><script>window.print();<\/script>`);
+        printWindow.document.write(`<pre style="font-family:Arial; white-space:pre-wrap; font-size:13px;"><h2>Ekzen Teknik - Servis Listesi / PDF</h2>${rows}</pre><script>window.print();<\/script>`);
         printWindow.document.close();
     }
 
