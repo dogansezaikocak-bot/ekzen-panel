@@ -2746,129 +2746,220 @@
         const s = db.servisler.find(item => item._key === activeServisKey);
         if(!s) return;
 
-        const islemler = s.islemler ? Object.keys(s.islemler).map(k => `<li>${s.islemler[k].time || ''} - ${s.islemler[k].text || ''}</li>`).join('') : '<li>İşlem kaydı yok</li>';
-        const notlar = s.notlar ? Object.keys(s.notlar).map(k => `<li>${s.notlar[k].time || ''} - ${s.notlar[k].text || ''}</li>`).join('') : '<li>Not yok</li>';
-        const odemeler = s.odemeler ? Object.keys(s.odemeler).map(k => {
-            const o = s.odemeler[k] || {};
+        const esc = (val) => String(val ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+        const money = (val) => (parseInt(val || 0, 10) || 0).toLocaleString('tr-TR') + ' TL';
+        const effectiveDate = getEffectiveServiceDate(s);
+        const serviceDateText = formatDateShort(effectiveDate) || formatDateShort(s.serviceDate) || formatDateShort(s.date) || '-';
+        const todayText = new Date().toLocaleDateString('tr-TR');
+        const statusText = s.status || '-';
+        const phoneClean = normalizePhoneForLink(s.phone || '');
+        const technicianName = s.technician || s.teknisyen || 'Doğan Sezai Koçak';
+
+        const islemList = s.islemler ? Object.keys(s.islemler).map(k => s.islemler[k]).filter(Boolean) : [];
+        const notList = s.notlar ? Object.keys(s.notlar).map(k => s.notlar[k]).filter(Boolean) : [];
+        const odemeList = s.odemeler ? Object.keys(s.odemeler).map(k => s.odemeler[k]).filter(Boolean) : [];
+
+        const islemText = islemList.length
+            ? islemList.map(i => `<div class="note-line"><strong>${esc(i.time || '')}</strong> ${esc(i.text || '')}</div>`).join('')
+            : '<div class="empty-line">Yapılan işlem açıklaması girilmedi.</div>';
+
+        const servisNotText = notList.length
+            ? notList.map(n => `<div class="note-line"><strong>${esc(n.time || '')}</strong> ${esc(n.text || '')}</div>`).join('')
+            : '<div class="empty-line">Servis notu yok.</div>';
+
+        const toplamOdeme = odemeList.reduce((sum, o) => sum + (parseInt(o.tutar || 0, 10) || 0), 0);
+        const toplamMasraf = odemeList.reduce((sum, o) => {
             const g = o.giderler || {};
-            let rows = `<li>${o.time || ''} - ${o.text || 'Ödeme'} / ${o.type || 'Nakit'}: ${parseInt(o.tutar || 0).toLocaleString('tr-TR')} TL</li>`;
-            if(g.malzeme) rows += `<li>${o.time || ''} - Masraf / ${g.malzeme.desc || ''}: -${parseInt(g.malzeme.tutar || 0).toLocaleString('tr-TR')} TL</li>`;
-            return rows;
-        }).join('') : '<li>Ödeme yok</li>';
-        const toplamOdeme = s.odemeler ? Object.keys(s.odemeler).reduce((sum, k) => sum + parseInt(s.odemeler[k].tutar || 0), 0) : 0;
+            return sum + (parseInt((g.malzeme && g.malzeme.tutar) || 0, 10) || 0);
+        }, 0);
+        const toplamKomisyon = odemeList.reduce((sum, o) => {
+            const g = o.giderler || {};
+            return sum + (parseInt((g.komisyon && g.komisyon.tutar) || 0, 10) || 0);
+        }, 0);
+        const genelToplam = toplamOdeme - toplamMasraf - toplamKomisyon;
+
+        const odemeRows = odemeList.length ? odemeList.map(o => {
+            const g = o.giderler || {};
+            const masrafTutar = parseInt((g.malzeme && g.malzeme.tutar) || 0, 10) || 0;
+            const masrafDesc = (g.malzeme && g.malzeme.desc) ? g.malzeme.desc : '';
+            const komisyonTutar = parseInt((g.komisyon && g.komisyon.tutar) || 0, 10) || 0;
+            const komisyonYuzde = g.komisyon && g.komisyon.yuzde ? ` (%${esc(g.komisyon.yuzde)})` : '';
+            return `
+                <tr>
+                    <td>${esc(o.time || serviceDateText)}</td>
+                    <td>${esc(o.type || 'Nakit')}</td>
+                    <td class="right plus">+${money(o.tutar || 0)}</td>
+                    <td>${masrafDesc ? esc(masrafDesc) : '-'}</td>
+                    <td class="right minus">-${money(masrafTutar)}</td>
+                    <td class="right minus">-${money(komisyonTutar)}${komisyonYuzde}</td>
+                </tr>`;
+        }).join('') : '<tr><td colspan="6" class="empty-line">Ödeme kaydı yok.</td></tr>';
+
+        const whatsappText = encodeURIComponent(`Merhaba ${s.name || ''}, Ekzen Teknik servis fişiniz hazırlanmıştır. Servis No: #${s.id}. PDF dosyasını ayrıca paylaşıyorum.`);
+        const whatsappLink = phoneClean ? `https://wa.me/${phoneClean}?text=${whatsappText}` : '';
 
         const html = `
-            <!DOCTYPE html>
-            <html lang="tr">
-            <head>
-                <meta charset="UTF-8">
-                <title>Servis Fişi #${s.id}</title>
-                <style>
-                    body { font-family: Arial, sans-serif; color:#222; padding: 24px; }
-                    .header { border-bottom: 2px solid #0066b2; padding-bottom: 12px; margin-bottom: 18px; display:flex; justify-content:space-between; }
-                    h1 { margin:0; color:#0066b2; font-size:24px; }
-                    h2 { font-size:16px; border-bottom:1px solid #ddd; padding-bottom:6px; margin-top:18px; }
-                    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-                    .box { border:1px solid #ddd; padding:12px; border-radius:6px; }
-                    .row { margin:6px 0; }
-                    .label { font-weight:bold; display:inline-block; width:110px; }
-                    ul { margin:8px 0 0 18px; padding:0; }
-                    .total { font-size:18px; font-weight:bold; color:#2e7d32; }
-                    .signature { display:flex; justify-content:space-between; margin-top:50px; }
-                    .sigbox { width:220px; border-top:1px solid #333; text-align:center; padding-top:8px; }
-                    @media print { button { display:none; } body { padding:0; } }
-            
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ekzen Servis Fişi #${esc(s.id)}</title>
+<style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; color:#1f2937; background:#eef2f7; margin:0; padding:18px; }
+    .toolbar { max-width: 920px; margin: 0 auto 12px; display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+    .toolbar button, .toolbar a { border:0; border-radius:8px; padding:10px 14px; font-weight:800; text-decoration:none; cursor:pointer; font-size:13px; }
+    .print-btn { background:#0f3a68; color:white; }
+    .wa-btn { background:#25d366; color:white; }
+    .page { width: 210mm; min-height: 297mm; max-width: 920px; margin: 0 auto; background:white; padding:18mm; box-shadow:0 6px 22px rgba(15,23,42,.18); }
+    .top { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:22px; }
+    .brand h1 { margin:0; letter-spacing:4px; color:#173b63; font-size:42px; line-height:1; }
+    .brand p { margin:9px 0 0; color:#4b5563; font-size:15px; }
+    .title { text-align:right; }
+    .title h2 { margin:0; color:#e3343f; font-size:27px; letter-spacing:.5px; }
+    .title .date { margin-top:8px; font-size:15px; font-weight:800; color:#4b5563; }
+    .cards { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+    .card { border:1px solid #cfd8e3; border-radius:6px; overflow:hidden; background:#fff; }
+    .card-title { background:#f4f7fa; color:#1f2937; font-weight:900; padding:9px 12px; border-bottom:1px solid #cfd8e3; font-size:15px; }
+    .card-body { padding:10px 12px; }
+    .row { display:grid; grid-template-columns:115px 1fr; gap:8px; margin:7px 0; font-size:14px; line-height:1.35; }
+    .label { font-weight:900; color:#4b5563; }
+    .value.status { color:#198754; font-weight:900; }
+    .section-title { margin:17px 0 8px; border-left:5px solid #173b63; padding-left:9px; color:#173b63; font-size:17px; font-weight:900; }
+    .device-table, .price-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .device-table td, .price-table th, .price-table td { border:1px solid #cfd8e3; padding:9px 10px; vertical-align:top; }
+    .device-table .label-cell { width:25%; font-weight:900; color:#1f2937; background:#fbfcfd; }
+    .check { display:inline-block; margin-right:18px; white-space:nowrap; }
+    .box { border:1px solid #cfd8e3; background:#fbfcff; border-radius:6px; padding:11px 12px; font-size:14px; line-height:1.45; }
+    .note-line { border-bottom:1px dashed #d6dde8; padding:5px 0; }
+    .note-line:last-child { border-bottom:0; }
+    .empty-line { color:#6b7280; font-style:italic; }
+    .price-table th { background:#173b63; color:white; text-align:left; }
+    .price-table .right { text-align:right; white-space:nowrap; }
+    .plus { color:#166534; font-weight:900; }
+    .minus { color:#b91c1c; font-weight:900; }
+    .total-wrap { display:flex; justify-content:flex-end; margin-top:14px; }
+    .total-label { font-size:18px; font-weight:900; color:#e3343f; padding:12px 12px 0 0; }
+    .total-box { min-width:190px; border:2px solid #e3343f; text-align:right; padding:10px 14px; font-size:20px; font-weight:900; }
+    .terms { margin-top:22px; border:1px solid #dbe3ee; background:#fbfcff; border-radius:6px; padding:11px 12px; font-size:12px; color:#4b5563; line-height:1.42; }
+    .terms strong { color:#4b5563; }
+    .signatures { display:flex; justify-content:space-around; gap:80px; margin-top:58px; font-weight:800; color:#4b5563; }
+    .sig { flex:1; text-align:center; border-top:1px dashed #9ca3af; padding-top:9px; }
+    .footer { margin-top:18px; font-size:11px; color:#6b7280; text-align:center; }
+    @media print {
+        body { background:white; padding:0; }
+        .toolbar { display:none; }
+        .page { width:auto; min-height:auto; max-width:none; margin:0; padding:12mm; box-shadow:none; }
+        @page { size:A4; margin:0; }
+    }
+    @media (max-width: 768px) {
+        body { padding:8px; }
+        .page { width:100%; min-height:auto; padding:14px; }
+        .top, .cards { grid-template-columns:1fr; display:block; }
+        .title { text-align:left; margin-top:16px; }
+        .card { margin-bottom:12px; }
+        .row { grid-template-columns:95px 1fr; }
+        .brand h1 { font-size:34px; }
+    }
+</style>
+</head>
+<body>
+    <div class="toolbar">
+        <button class="print-btn" onclick="window.print()">PDF / Yazdır</button>
+        ${whatsappLink ? `<a class="wa-btn" href="${whatsappLink}" target="_blank">WhatsApp Mesajı Aç</a>` : ''}
+    </div>
+    <main class="page">
+        <section class="top">
+            <div class="brand">
+                <h1>EKZEN</h1>
+                <p>Beyaz Eşya &amp; Kombi Servis Hizmetleri</p>
+            </div>
+            <div class="title">
+                <h2>SERVİS FİŞİ</h2>
+                <div class="date">Tarih: ${esc(todayText)}</div>
+                <div class="date">Servis No: #${esc(s.id || '')}</div>
+            </div>
+        </section>
 
-        /* V13 - Mobilde toplu servis kartı: sadece isim / telefon / adres / şikayet */
-        @media (max-width: 768px) {
-            .mobile-open-link { cursor: pointer; }
-            .customer-address { color: var(--main-blue); font-weight: 700; background: #eef6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 8px 10px; margin-top: 7px; }
-            .customer-address::after { content: '  › Detay'; color: #64748b; font-size: 11px; font-weight: 800; }
-
-            .dashboard-services-panel { overflow: visible; padding: 10px; border-radius: 12px; }
-            .dashboard-services-panel .service-table,
-            .dashboard-services-panel .service-table tbody,
-            .dashboard-services-panel .service-table tr,
-            .dashboard-services-panel .service-table td,
-            .service-list-panel .service-table,
-            .service-list-panel .service-table tbody,
-            .service-list-panel .service-table tr,
-            .service-list-panel .service-table td { display: block; width: 100%; min-width: 0; }
-
-            .dashboard-services-panel .service-table thead,
-            .service-list-panel .service-table thead { display: none; }
-
-            .dashboard-services-panel .service-table tr,
-            .service-list-panel .service-table tr { background: #ffffff; border: 1px solid #d8dee9; border-radius: 14px; margin-bottom: 10px; padding: 12px; box-shadow: 0 2px 8px rgba(15,23,42,.08); }
-
-            .dashboard-services-panel .service-table td,
-            .service-list-panel .service-table td { border: 0; padding: 0; }
-
-            .dashboard-services-panel .service-table td::before,
-            .service-list-panel .service-table td::before { display: none !important; content: none !important; }
-
-            /* Ana sayfa mobil: tarih ve işlem görünmesin; durum görünsün */
-            .dashboard-services-panel .service-table td:nth-child(1),
-            .dashboard-services-panel .service-table td:nth-child(5) { display: none !important; }
-
-            /* Servisler mobil: seçim, tarih ve işlem görünmesin; durum görünsün */
-            .service-list-panel .service-table td:nth-child(1),
-            .service-list-panel .service-table td:nth-child(2),
-            .service-list-panel .service-table td:nth-child(6) { display: none !important; }
-
-            /* Cihaz/model gizlensin; sadece şikayet görünsün */
-            .dashboard-services-panel .service-table td:nth-child(3) > div:not(.complaint-line),
-            .service-list-panel .service-table td:nth-child(4) > div:not(.complaint-line) { display: none !important; }
-
-            .customer-name { font-size: 16px; color: #0f172a; margin-bottom: 5px; }
-            .muted-line { font-size: 13px; line-height: 1.35; }
-            .dashboard-services-panel .service-table td:nth-child(4),
-            .service-list-panel .service-table td:nth-child(5) { margin-top: 8px; }
-            .dashboard-services-panel .service-table td:nth-child(4) .muted-line,
-            .service-list-panel .service-table td:nth-child(5) .muted-line { display: none !important; }
-            .dashboard-services-panel .status-badge,
-            .service-list-panel .status-badge { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; white-space: normal; }
-            .complaint-line { margin-top: 9px; background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 8px 10px; color: #9a3412 !important; font-weight: 700; }
-            .complaint-line::before { content: 'Şikayet: '; color: #92400e; }
-        }
-
-        @media (max-width: 768px) {
-            .wizard-wrap { padding: 14px; border-radius: 10px; }
-            .wizard-step input, .wizard-step textarea { font-size: 16px; min-height: 48px; }
-            .wizard-step textarea { min-height: 120px; }
-            .wizard-buttons { flex-direction: column; }
-            .wizard-buttons .btn, .wizard-buttons .right-buttons { width: 100%; justify-content: center; }
-            .wizard-buttons .right-buttons { display: flex; flex-direction: column; }
-        }
-    </style>
-            </head>
-            <body>
-                <button onclick="window.print()" style="padding:8px 14px; margin-bottom:16px;">Yazdır</button>
-                <div class="header">
-                    <div><h1>Ekzen Teknik</h1><div>Servis Takip Fişi</div></div>
-                    <div><strong>Servis No:</strong> #${s.id}<br><strong>Kayıt:</strong> ${s.date || ''}<br><strong>Servis:</strong> ${formatDateShort(s.serviceDate) || 'Belirtilmedi'}<br><strong>Ertelenen:</strong> ${formatDateShort(s.postponedDate) || 'Yok'}<br><strong>Durum:</strong> ${s.status || ''}<br><strong>Kaynak:</strong> ${s.source || 'Saha'}<br><strong>Teknisyen:</strong> ${s.technician || s.teknisyen || 'Atanmadı'}</div>
+        <section class="cards">
+            <div class="card">
+                <div class="card-title">MÜŞTERİ BİLGİLERİ</div>
+                <div class="card-body">
+                    <div class="row"><div class="label">Adı Soyadı:</div><div>${esc(s.name || '-')}</div></div>
+                    <div class="row"><div class="label">Telefon:</div><div>${esc(s.phone || '-')}</div></div>
+                    <div class="row"><div class="label">Adres:</div><div>${esc(s.address || '-')}</div></div>
+                    <div class="row"><div class="label">Servis Kaynağı:</div><div>${esc(s.source || 'Saha')}</div></div>
                 </div>
-                <div class="grid">
-                    <div class="box">
-                        <h2>Müşteri Bilgisi</h2>
-                        <div class="row"><span class="label">Ad Soyad:</span> ${s.name || ''}</div>
-                        <div class="row"><span class="label">Telefon:</span> ${s.phone || ''}</div>
-                        <div class="row"><span class="label">Adres:</span> ${s.address || ''}</div>
-                    </div>
-                    <div class="box">
-                        <h2>Cihaz Bilgisi</h2>
-                        <div class="row"><span class="label">Cihaz:</span> ${s.cihaz || ''}</div>
-                        <div class="row"><span class="label">Model:</span> ${s.model || ''}</div>
-                        <div class="row"><span class="label">Arıza:</span> ${s.ariza || ''}</div>
-                    </div>
+            </div>
+            <div class="card">
+                <div class="card-title">SERVİS BİLGİLERİ</div>
+                <div class="card-body">
+                    <div class="row"><div class="label">İşlem Tarihi:</div><div>${esc(serviceDateText)}</div></div>
+                    <div class="row"><div class="label">Servis Tipi:</div><div>Arıza Onarım / Servis Hizmeti</div></div>
+                    <div class="row"><div class="label">Durum:</div><div class="value status">${esc(statusText)}</div></div>
+                    <div class="row"><div class="label">Teknisyen:</div><div>${esc(technicianName)}</div></div>
+                    <div class="row"><div class="label">İletişim:</div><div>0531 921 17 91</div></div>
                 </div>
-                <div class="box"><h2>Yapılan İşlemler</h2><ul>${islemler}</ul></div>
-                <div class="box"><h2>Ödemeler</h2><ul>${odemeler}</ul><p class="total">Toplam Alınan: ${toplamOdeme.toLocaleString('tr-TR')} TL</p></div>
-                <div class="box"><h2>Servis Notları</h2><ul>${notlar}</ul></div>
-                <div class="signature"><div class="sigbox">Teknisyen İmza</div><div class="sigbox">Müşteri İmza</div></div>
-                <script>setTimeout(() => window.print(), 500);<\/script>
-            </body>
-            </html>`;
+            </div>
+        </section>
+
+        <div class="section-title">CİHAZ BİLGİLERİ</div>
+        <table class="device-table">
+            <tr>
+                <td class="label-cell">Cihaz Türü:</td>
+                <td><span class="check">☑ ${esc(s.cihaz || 'Servis Cihazı')}</span></td>
+            </tr>
+            <tr>
+                <td class="label-cell">Marka / Model:</td>
+                <td>${esc(s.model || '-')}</td>
+            </tr>
+        </table>
+
+        <div class="section-title">MÜŞTERİ ŞİKAYETİ / ARIZA TESPİTİ</div>
+        <div class="box">${esc(s.ariza || 'Arıza açıklaması girilmedi.')}</div>
+
+        <div class="section-title">YAPILAN İŞLEMLER VE AÇIKLAMALAR</div>
+        <div class="box">${islemText}</div>
+
+        <div class="section-title">SERVİS NOTLARI</div>
+        <div class="box">${servisNotText}</div>
+
+        <div class="section-title">ÜCRETLENDİRME VE TAHSİLAT</div>
+        <table class="price-table">
+            <thead>
+                <tr>
+                    <th>Tarih</th>
+                    <th>Ödeme Türü</th>
+                    <th>Müşteriden Alınan</th>
+                    <th>Masraf Açıklaması</th>
+                    <th>Masraf</th>
+                    <th>Komisyon</th>
+                </tr>
+            </thead>
+            <tbody>${odemeRows}</tbody>
+        </table>
+        <div class="total-wrap">
+            <div class="total-label">GENEL TOPLAM:</div>
+            <div class="total-box">${money(genelToplam)}</div>
+        </div>
+
+        <div class="terms">
+            <strong>TÜKETİCİYE NOTLAR VE GARANTİ ŞARTLARI:</strong><br>
+            1. Bu servis fişi, yapılan servis işlemi ve tahsilat bilgisini belgelemek için düzenlenmiştir.<br>
+            2. Değiştirilen parça varsa garanti şartı, parça türü ve kullanım koşullarına göre servis tarafından ayrıca belirtilir.<br>
+            3. Voltaj, kullanıcı hatası, dış müdahale, tesisat kaynaklı arızalar ve tekrar eden kullanıcı kaynaklı problemler garanti kapsamı dışındadır.
+        </div>
+
+        <div class="signatures">
+            <div class="sig">Müşteri Adı Soyadı / İmza</div>
+            <div class="sig">Teknisyen Kaşe / İmza</div>
+        </div>
+        <div class="footer">Ekzen Teknik • Beyaz Eşya &amp; Kombi Servis Hizmetleri</div>
+    </main>
+    <script>setTimeout(() => window.print(), 700);<\/script>
+</body>
+</html>`;
 
         const printWindow = window.open('', '_blank');
         if(!printWindow) { alert("Yazdırma penceresi açılamadı. Tarayıcı açılır pencereyi engellemiş olabilir."); return; }
